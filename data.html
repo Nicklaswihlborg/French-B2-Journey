@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Data — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="data">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html">Comprehension</a>
+      <a href="speaking.html">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
+      <a href="phrases.html">Phrases</a>
+      <a href="goals.html">Goals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="data.html" class="active">Data</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Backup & Restore</h2>
+      <div class="row wrap">
+        <button id="exportData" class="btn">Export backup (.json)</button>
+        <label class="file">
+          <input id="importData" type="file" accept=".json" />
+          <span class="btn">Import backup</span>
+        </label>
+        <button id="factoryReset" class="btn bad">Factory reset</button>
+      </div>
+      <p class="muted small">Everything is stored locally (safe storage with fallback). Export regularly if you switch devices.</p>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
