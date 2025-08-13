@@ -1,4 +1,11 @@
-/* French B2 Journey – single shared script (safe + mobile friendly) */
+/* French B2 Journey — upgraded build:
+   - Freeze-proof Phrases (sequential TTS + cancel)
+   - 250+ vocab auto-seed on first run (from data/vocab.json)
+   - Comprehension: difficulty, self-check scoring
+   - Speaking: timers + word count
+   - Listening: gentler scoring & replay
+   - Safe localStorage with memory fallback
+*/
 (() => {
   /* ---------- helpers ---------- */
   const $  = (s,root=document)=>root.querySelector(s);
@@ -7,8 +14,9 @@
   const addDays  = (d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
   const fmt      = (d)=> new Date(d).toISOString().slice(0,10);
   const esc = s => String(s).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const words = t => (t||'').trim().split(/\s+/).filter(Boolean);
 
-  /* ---------- safe storage adapter (prevents freezes) ---------- */
+  /* ---------- safe storage ---------- */
   const store = (() => {
     let persistent = true; const mem = {};
     try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }
@@ -45,46 +53,37 @@
   if (store.get(K.flagsByDay)==null)  store.set(K.flagsByDay,{});
   if (store.get(K.dailyMinutes)==null)store.set(K.dailyMinutes,40);
   if (store.get(K.weeklyHours)==null) store.set(K.weeklyHours,8);
-  if (store.get(K.vocab)==null)       store.set(K.vocab,[]);
   if (store.get(K.b2Target)==null)    store.set(K.b2Target, new Date(new Date().getFullYear(),11,31).toISOString().slice(0,10));
+  // vocab is seeded later if empty
 
-  /* ---------- TTS + Speech Recognition (guarded) ---------- */
+  /* ---------- TTS + SR (guarded) ---------- */
   let frVoice = null;
-  function pickVoice(){
-    try {
-      const vs = speechSynthesis.getVoices();
-      frVoice = vs.find(v=>/^fr/i.test(v.lang)) || null;
-    }catch{}
-  }
-  try { speechSynthesis.onvoiceschanged = pickVoice; pickVoice(); } catch {}
+  function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); frVoice = vs.find(v=>/^fr/i.test(v.lang)) || null; }catch{} }
+  try{ speechSynthesis.onvoiceschanged = pickVoice; pickVoice(); }catch{}
   function speak(text, rate=1){
     try{
       if(!('speechSynthesis' in window)) throw 0;
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text); u.lang='fr-FR'; u.rate=rate; if(frVoice) u.voice=frVoice; speechSynthesis.speak(u);
-    }catch{ alert('Speech synthesis not available in this browser.'); }
+      const u=new SpeechSynthesisUtterance(text); u.lang='fr-FR'; u.rate=rate; if(frVoice) u.voice=frVoice; speechSynthesis.speak(u);
+    }catch{ alert('Speech synthesis not available.'); }
   }
-
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   function startSR(outEl, onState){
-    if(!SR){ alert('Speech recognition not available in this browser (try Chrome).'); return null; }
-    let rec = new SR(); rec.lang='fr-FR'; rec.interimResults=true; rec.continuous=true;
-    if(onState) onState('listening');
-    rec.onresult = e => {
-      let txt = ''; for(let i=0;i<e.results.length;i++) txt += e.results[i][0].transcript + (e.results[i].isFinal?'\n':' ');
-      if(outEl) outEl.value = txt.trim();
-    };
-    rec.onerror  = e => console.warn('SR error', e);
-    rec.onend    = () => onState && onState('idle');
-    try{ rec.start(); }catch(e){ console.warn(e); alert('Could not start mic; please allow microphone.'); return null; }
+    if(!SR){ alert('Speech recognition not available (try Chrome).'); return null; }
+    let rec=new SR(); rec.lang='fr-FR'; rec.interimResults=true; rec.continuous=true;
+    onState?.('listening');
+    rec.onresult=e=>{ let t=''; for(let i=0;i<e.results.length;i++){ t+= e.results[i][0].transcript + (e.results[i].isFinal?'\n':' '); } outEl.value=t.trim(); };
+    rec.onerror = e=>console.warn('SR error',e);
+    rec.onend   = ()=> onState?.('idle');
+    try{ rec.start(); }catch(e){ alert('Mic blocked. Please allow.'); return null; }
     return rec;
   }
 
-  /* ---------- XP and streak ---------- */
+  /* ---------- XP / streak ---------- */
   const xpMap = ()=>store.get(K.xpByDay,{});
   function getXP(d=todayKey()){ return xpMap()[d]||0; }
   function setXP(v,d=todayKey()){ const m=xpMap(); m[d]=v; store.set(K.xpByDay,m); }
   function addXP(n){ setXP(getXP()+n); refreshDashboard(); draw14(); }
+
   function weekNumber(date=new Date()){
     const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
     const day=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-day);
@@ -94,54 +93,70 @@
   function calcStreak(goal){ const m=xpMap(); let s=0, day=new Date(); for(;;){ const k=day.toISOString().slice(0,10); if((m[k]||0)>=goal){ s++; day=addDays(day,-1);} else break; } return s; }
   function weekXP(){ const m=xpMap(); const d=new Date(); const wk=weekNumber(d); let sum=0; for(const [k,v] of Object.entries(m)){ const dt=new Date(k); if(weekNumber(dt)===wk && dt.getFullYear()===d.getFullYear()) sum+=v||0; } return sum; }
 
-  /* ---------- Dashboard init ---------- */
+  /* ---------- dashboard ---------- */
   function refreshCountdown(){
-    const t = store.get(K.b2Target);
-    const end = t ? new Date(t) : new Date(new Date().getFullYear(),11,31);
+    const t = store.get(K.b2Target); const end = t? new Date(t) : new Date(new Date().getFullYear(),11,31);
     const days = Math.max(0, Math.ceil((end - new Date())/86400000));
-    const el = $('#countdownBadge'); if(el) el.textContent = `📅 ${days} days to B2`;
+    $('#countdownBadge') && ($('#countdownBadge').textContent = `📅 ${days} days to B2`);
   }
-  function refreshDashboard(){
-    const goal=store.get(K.goalDailyXP,30), xp=getXP();
-    $('#goalVal') && ($('#goalVal').textContent = goal);
-    $('#goalBadge') && ($('#goalBadge').textContent = `🎯 ${goal} xp/day`);
-    $('#xpVal') && ($('#xpVal').textContent = xp);
-    $('#xpBar') && ($('#xpBar').style.width = Math.min(100,Math.round(xp/goal*100))+'%');
-    $('#streakBadge') && ($('#streakBadge').textContent = `🔥 Streak: ${calcStreak(goal)}`);
-    $('#wkXp') && ($('#wkXp').textContent = weekXP());
-    $('#sum14') && ($('#sum14').textContent = last14().reduce((a,b)=>a+b.xp,0));
-    const ss = $('#saveStatus'); if(ss) ss.textContent = store.isPersistent()? '💾 saved' : '⚠️ memory';
-  }
-  function last14(){ const m=xpMap(); const t=new Date(); const days=[]; for(let i=13;i>=0;i--){ const d=addDays(t,-i); const k=d.toISOString().slice(0,10); days.push({k, xp:m[k]||0}); } return days; }
+  function last14(){ const m=xpMap(), t=new Date(), arr=[]; for(let i=13;i>=0;i--){ const d=addDays(t,-i); const k=d.toISOString().slice(0,10); arr.push({k, xp:m[k]||0}); } return arr; }
   function draw14(){
-    const c = $('#chart14'); if(!c) return; const g=c.getContext('2d');
+    const c=$('#chart14'); if(!c) return; const g=c.getContext('2d');
     const r=c.getBoundingClientRect(), dpr=window.devicePixelRatio||1; c.width=Math.floor(r.width*dpr); c.height=Math.floor(150*dpr);
     g.clearRect(0,0,c.width,c.height);
-    const data=last14(), max=Math.max(30,...data.map(d=>d.xp),30), W=c.width,H=c.height,p=22, slot=(W-2*p)/data.length, bw=Math.max(6,slot*.6);
+    const data=last14(), max=Math.max(30,...data.map(d=>d.xp),30);
+    const W=c.width,H=c.height,p=22,slot=(W-2*p)/data.length,bw=Math.max(6,slot*.6);
     g.fillStyle='#5aa2ff'; data.forEach((d,i)=>{ const h=(H-2*p)*(d.xp/max); const x=p+i*slot; g.fillRect(Math.round(x), Math.round(H-p-h), Math.round(bw), Math.round(h)); });
+    $('#sum14') && ($('#sum14').textContent = data.reduce((a,b)=>a+b.xp,0));
+  }
+  function refreshDashboard(){
+    if(document.body.dataset.page!=='dashboard') return;
+    const goal=store.get(K.goalDailyXP,30), xp=getXP();
+    $('#goalVal').textContent = goal;
+    $('#goalBadge').textContent = `🎯 ${goal} xp/day`;
+    $('#xpVal').textContent = xp;
+    $('#xpBar').style.width = Math.min(100,Math.round(xp/goal*100))+'%';
+    $('#streakBadge').textContent = `🔥 Streak: ${calcStreak(goal)}`;
+    $('#wkXp').textContent = weekXP();
+    const ss=$('#saveStatus'); if(ss) ss.textContent = store.isPersistent()? '💾 saved' : '⚠️ memory';
   }
   function initDashboard(){
     if(document.body.dataset.page!=='dashboard') return;
-    refreshDashboard(); draw14(); refreshCountdown();
-    window.addEventListener('resize', draw14);
     $$('button[data-xp]').forEach(b=> b.addEventListener('click', ()=> addXP(parseInt(b.dataset.xp,10)||5)));
     $('#resetDay')?.addEventListener('click', ()=>{ setXP(0); refreshDashboard(); draw14(); });
     $('#incGoal')?.addEventListener('click', ()=>{ store.set(K.goalDailyXP, store.get(K.goalDailyXP,30)+5); refreshDashboard(); });
     $('#decGoal')?.addEventListener('click', ()=>{ store.set(K.goalDailyXP, Math.max(10, store.get(K.goalDailyXP,30)-5)); refreshDashboard(); });
+    refreshDashboard(); draw14(); refreshCountdown(); window.addEventListener('resize', draw14);
   }
 
-  /* ---------- Comprehension ---------- */
+  /* ---------- JSON helper ---------- */
+  async function fetchJSON(path, fallback){
+    try{ const r=await fetch(path,{cache:'no-store'}); if(!r.ok) throw 0; return await r.json(); }
+    catch{ return fallback; }
+  }
+
+  /* ---------- comprehension (added difficulty & self-check) ---------- */
   async function initComprehension(){
     if(document.body.dataset.page!=='comprehension') return;
-    const fb=[{title:'Le vélo en ville', fr:"Aujourd’hui, la mairie a ouvert une nouvelle piste cyclable au centre-ville pour réduire la circulation et la pollution.", en:"Today, the city hall opened a new bike lane downtown to reduce traffic and pollution.", qs:["Pourquoi la mairie a-t-elle ouvert la piste ?"], ans:["Pour réduire la circulation et la pollution."]}];
+    const fb=[{title:'Le vélo en ville',fr:"Aujourd’hui, la mairie a ouvert une nouvelle piste cyclable au centre-ville pour réduire la circulation et la pollution.",en:"Today, the city hall opened a new bike lane downtown to reduce traffic and pollution.",qs:["Pourquoi la mairie a-t-elle ouvert la piste ?"],ans:["Pour réduire la circulation et la pollution."],level:"A2-B1"}];
     let articles = await fetchJSON('data/news.json', fb);
     let idx=0, showEN=false;
     function render(){
-      const a = articles[idx%articles.length];
-      $('#artTitle').textContent = a.title;
+      const a=articles[idx%articles.length];
+      $('#artTitle').textContent = `${a.title} · ${a.level||'B1'}`;
       $('#artBox').value = showEN ? a.en : a.fr;
       $('#toggleLang').textContent = showEN ? 'Show FR' : 'Show EN';
-      $('#qa').innerHTML = `<ol class="small">${(a.qs||[]).map((q,i)=>`<li>${esc(q)} <details class="muted"><summary>Answer</summary>${esc((a.ans||[])[i]||'')}</details></li>`).join('')}</ol>`;
+      $('#qa').innerHTML = `
+        <ol class="small">${(a.qs||[]).map((q,i)=>`<li>${esc(q)} <details class="muted"><summary>Answer</summary>${esc((a.ans||[])[i]||'')}</details></li>`).join('')}</ol>
+        <textarea id="compAnswer" class="mono mt" rows="3" placeholder="Your short answer (FR)…"></textarea>
+        <button id="scoreComp" class="btn mt">Self-check</button>
+        <span id="compScore" class="pill mt"></span>
+      `;
+      $('#scoreComp').onclick = ()=>{
+        const user=($('#compAnswer').value||'').toLowerCase(); const key=((a.ans||[])[0]||'').toLowerCase();
+        const uw= new Set(words(user)), kw=new Set(words(key)); let hit=0; kw.forEach(w=>{ if(uw.has(w)) hit++; });
+        const score = kw.size? Math.round(hit/kw.size*100):0; $('#compScore').textContent = `Match: ${score}%`;
+      };
     }
     $('#prevArt')?.addEventListener('click', ()=>{ idx=(idx-1+articles.length)%articles.length; render(); });
     $('#nextArt')?.addEventListener('click', ()=>{ idx=(idx+1)%articles.length; render(); });
@@ -152,7 +167,7 @@
     render();
   }
 
-  /* ---------- Speaking ---------- */
+  /* ---------- speaking (timer + word count) ---------- */
   async function initSpeaking(){
     if(document.body.dataset.page!=='speaking') return;
     const fb={daily:["Décris ta routine du matin.","Parle de ta ville.","Quel est ton objectif cette semaine ?"]};
@@ -164,21 +179,31 @@
     catSel.addEventListener('change', setPrompt);
     $('#newPrompt')?.addEventListener('click', setPrompt);
     $('#speakPrompt')?.addEventListener('click', ()=> speak($('#promptBox').value, 1));
-    let rec=null;
+
+    // mic + SR + counters
+    let rec=null, startT=0, timerId=null;
+    const out=$('#speechOut');
+    const setState = st => $('#recState').textContent = `🗣️ State: ${st}`;
+    function updateMeta(){
+      const wc=words(out.value).length; const secs=Math.max(1, Math.round((Date.now()-startT)/1000));
+      $('#micState').textContent = `🎙️ Micro: ${rec? 'on':'off'}`; setState(rec?'listening':'idle');
+      // show words/min in title bar pill
+      document.title = `French B2 Journey — ${Math.round((wc/secs)*60)} wpm`;
+    }
     $('#askMic')?.addEventListener('click', async ()=>{
       try{ const s=await navigator.mediaDevices.getUserMedia({audio:true}); s.getTracks().forEach(t=>t.stop()); $('#micState').textContent='🎙️ Micro: granted'; }
       catch{ $('#micState').textContent='🎙️ Micro: blocked'; alert('Please allow microphone for github.io'); }
     });
     $('#startRec')?.addEventListener('click', ()=>{
-      rec = startSR($('#speechOut'), st=> $('#recState').textContent='🗣️ State: '+st);
-      if(rec) $('#stopRec').disabled=false;
+      if(rec) return; rec = startSR(out, setState); if(!rec) return;
+      startT=Date.now(); timerId=setInterval(updateMeta, 1000); $('#stopRec').disabled=false;
     });
-    $('#stopRec')?.addEventListener('click', ()=>{ try{rec&&rec.stop();}catch{} $('#stopRec').disabled=true; });
+    $('#stopRec')?.addEventListener('click', ()=>{ try{ rec&&rec.stop(); }catch{} rec=null; clearInterval(timerId); timerId=null; updateMeta(); $('#stopRec').disabled=true; });
     $('#markSpeakXP')?.addEventListener('click', ()=> addXP(5));
     setPrompt();
   }
 
-  /* ---------- Listening ---------- */
+  /* ---------- listening (gentle scoring) ---------- */
   async function initListening(){
     if(document.body.dataset.page!=='listening') return;
     const fb=[{text:"Pouvez-vous répéter plus lentement, s'il vous plaît ?", hint:"Demande polie"}];
@@ -202,33 +227,65 @@
     show();
   }
 
-  /* ---------- Vocabulary ---------- */
+  /* ---------- vocab (auto-seed 250+ on first run) ---------- */
   function vocabList(){ return store.get(K.vocab,[]); }
   function setVocab(v){ store.set(K.vocab,v); }
-  function dueCount(){ const today=fmt(todayKey()); return vocabList().filter(w=> w.due<=today).length; }
+  function refreshVocabStats(){
+    if(document.body.dataset.page!=='vocab') return;
+    const today=fmt(todayKey());
+    $('#dueNow').textContent = vocabList().filter(v=>v.due<=today).length;
+    $('#totalCards').textContent = vocabList().length;
+  }
   function refreshVocabTable(){
     if(document.body.dataset.page!=='vocab') return;
-    const tb = $('#vTable tbody'); const list=vocabList(); tb.innerHTML='';
-    list.forEach(w=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${esc(w.fr)}</td><td>${esc(w.en)}</td><td class="small">${w.due}</td><td><button class="btn bad small" data-del="${w.id}">Del</button></td>`; tb.appendChild(tr); });
+    const tb = $('#vTable tbody'); tb.innerHTML='';
+    vocabList().forEach(w=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${esc(w.fr)}</td><td>${esc(w.en)}</td><td class="small">${w.due}</td><td><button class="btn bad small" data-del="${w.id}">Del</button></td>`;
+      tb.appendChild(tr);
+    });
     tb.onclick = e=>{ const id=e.target.getAttribute('data-del'); if(!id) return; setVocab(vocabList().filter(x=>x.id!=id)); refreshVocabTable(); refreshVocabStats(); };
     refreshVocabStats();
   }
-  function refreshVocabStats(){ $('#dueNow') && ($('#dueNow').textContent = dueCount()); $('#totalCards') && ($('#totalCards').textContent = vocabList().length); }
-  function addWord(fr,en){ const id=Date.now()+Math.random(); const item={id,fr,en,ease:2.5,interval:0,reps:0,due:fmt(todayKey())}; setVocab([...vocabList(), item]); refreshVocabTable(); }
+  function addWord(fr,en){
+    const id=Date.now()+Math.random();
+    const item={id,fr,en,ease:2.5,interval:0,reps:0,due:fmt(todayKey())};
+    setVocab([...vocabList(), item]); refreshVocabTable();
+  }
+  function seedFromPairs(pairs){ // pairs: ["fr|en", ...]
+    const now = fmt(todayKey());
+    const seeded = pairs.map((line,i)=>{
+      const [fr,en] = line.split('|').map(s=>s.trim());
+      return {id:Date.now()+i+Math.random(), fr, en, ease:2.5, interval:0, reps:0, due:now};
+    });
+    setVocab(seeded); refreshVocabTable();
+  }
+  async function maybeSeedVocab(){
+    if(vocabList().length>0) return;
+    const fallback={pairs:["bonjour|hello","merci|thank you","travailler|to work"]};
+    const data = await fetchJSON('data/vocab.json', fallback);
+    if(Array.isArray(data?.pairs) && data.pairs.length){ seedFromPairs(data.pairs); }
+  }
   function initVocab(){
     if(document.body.dataset.page!=='vocab') return;
-    refreshVocabTable();
+    maybeSeedVocab().then(()=>{ refreshVocabTable(); });
     $('#addWord')?.addEventListener('click', ()=>{ const fr=$('#vFr').value.trim(), en=$('#vEn').value.trim(); if(!fr||!en) return; addWord(fr,en); $('#vFr').value=''; $('#vEn').value=''; });
     $('#exportVocab')?.addEventListener('click', ()=>{
       try{ const blob=new Blob([JSON.stringify(vocabList(),null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='vocab.json'; a.click(); URL.revokeObjectURL(url); }
-      catch{ alert('Export unavailable in this browser.'); }
+      catch{ alert('Export unavailable.'); }
     });
     $('#importVocab')?.addEventListener('change', e=>{
       const f=e.target.files?.[0]; if(!f) return; const r=new FileReader();
-      r.onload=()=>{ try{ const arr=JSON.parse(r.result); if(Array.isArray(arr)){ setVocab(arr); refreshVocabTable(); } }catch{ alert('Invalid JSON'); } };
+      r.onload=()=>{ try{
+        const obj=JSON.parse(r.result);
+        if(Array.isArray(obj)){ setVocab(obj); }
+        else if(Array.isArray(obj.pairs)){ seedFromPairs(obj.pairs); }
+        else throw 0;
+        refreshVocabTable();
+      }catch{ alert('Invalid JSON.'); } };
       r.readAsText(f);
     });
-    $('#clearVocab')?.addEventListener('click', ()=>{ if(confirm('Delete all words?')){ setVocab([]); refreshVocabTable(); } });
+    $('#clearVocab')?.addEventListener('click', ()=>{ if(confirm('Delete all words?')){ setVocab([]); refreshVocabTable(); refreshVocabStats(); } });
     $('#startQuiz')?.addEventListener('click', startQuiz);
     $('#skipCard')?.addEventListener('click', serveNextCard);
     $('#revealA')?.addEventListener('click', ()=>{ if(!currentCard) return; $('#quizBack').textContent=currentCard.en; setRateBtns(false); $('#revealA').disabled=true; });
@@ -243,12 +300,11 @@
   function serveNextCard(){
     currentCard = quizQueue.shift();
     if(!currentCard){ $('#quizFront h2').textContent='All done 👏'; setRateBtns(true); $('#markVocabXP').disabled=false; $('#quizBack').textContent=''; return; }
-    $('#quizFront h2').textContent=currentCard.fr;
-    $('#quizBack').textContent=''; setRateBtns(true); $('#revealA').disabled=false;
+    $('#quizFront h2').textContent=currentCard.fr; $('#quizBack').textContent=''; setRateBtns(true); $('#revealA').disabled=false;
   }
   function startQuiz(){
     const today=fmt(todayKey()); quizQueue = vocabList().filter(v=> v.due<=today);
-    if(!quizQueue.length){ alert('No cards due. Add words or wait for due date.'); return; }
+    if(!quizQueue.length){ alert('No cards due yet.'); return; }
     serveNextCard();
   }
   function rateCard(grade){
@@ -260,43 +316,56 @@
     refreshVocabTable(); serveNextCard();
   }
 
-  /* ---------- Phrases ---------- */
+  /* ---------- phrases (freeze-proof) ---------- */
   async function initPhrases(){
     if(document.body.dataset.page!=='phrases') return;
-    const fb=["Bonjour, comment ça va ?","Merci beaucoup !","Excusez-moi, où sont les toilettes ?","Je voudrais un café, s’il vous plaît.","Combien ça coûte ?","Pouvez-vous m’aider ?","Je ne comprends pas.","Je suis désolé(e).","C’est une bonne idée.","À demain !"];
-    const phrases = await fetchJSON('data/phrases.json', fb);
+    const fb=["Bonjour, comment ça va ?","Merci beaucoup !","Pouvez-vous parler plus lentement ?","Je ne comprends pas.","C’est une bonne idée.","À demain !"];
+    const data = await fetchJSON('data/phrases.json', fb);
+    const PHRASES = Array.isArray(data) && data.length ? data : fb;
+
+    let stopAll = false;
     function pick10(){
       const seed = parseInt((store.get(K.phrasesSeed) ?? Date.now()).toString().slice(-6),10);
       const day  = parseInt(todayKey().replace(/-/g,''),10);
-      const rand = n => (Math.abs(Math.sin(seed+day+n))*10000) % phrases.length | 0;
-      const set=new Set(); while(set.size<10 && set.size<phrases.length) set.add(rand(set.size));
-      return [...set].map(i=>phrases[i]);
+      const rand = n => (Math.abs(Math.sin(seed+day+n))*10000) % PHRASES.length | 0;
+      const set=new Set(); while(set.size<10 && set.size<PHRASES.length) set.add(rand(set.size));
+      return [...set].map(i=>PHRASES[i]);
     }
     function render(){
-      const c=$('#phraseList'); c.innerHTML=''; pick10().forEach((p,i)=>{ const row=document.createElement('div'); row.className='row'; row.style.margin='6px 0'; const btn=document.createElement('button'); btn.className='btn'; btn.textContent='🔊'; btn.onclick=()=>speak(p,1); const span=document.createElement('span'); span.textContent=(i+1)+'. '+p; row.appendChild(btn); row.appendChild(span); c.appendChild(row); });
+      const c=$('#phraseList'); c.innerHTML='';
+      pick10().forEach((p,i)=>{ const row=document.createElement('div'); row.className='row'; row.style.margin='6px 0';
+        const b=document.createElement('button'); b.className='btn'; b.textContent='🔊'; b.onclick=()=>speak(p,1);
+        const s=document.createElement('span'); s.textContent=(i+1)+'. '+p;
+        row.appendChild(b); row.appendChild(s); c.appendChild(row);
+      });
     }
     $('#refreshPhrases')?.addEventListener('click', ()=>{ store.set(K.phrasesSeed, Date.now()); render(); });
-    $('#speakAllPhrases')?.addEventListener('click', ()=> pick10().forEach((p,i)=> setTimeout(()=>speak(p,1), i*1400)));
+    $('#speakAllPhrases')?.addEventListener('click', ()=>{
+      stopAll=false; const list=pick10(); let i=0;
+      function next(){ if(stopAll || i>=list.length) return; try{ speechSynthesis.cancel(); }catch{} speak(list[i++],1); setTimeout(next, 1400); }
+      next();
+    });
+    $('#stopAllPhrases')?.addEventListener('click', ()=>{ stopAll=true; try{ speechSynthesis.cancel(); }catch{} });
     $('#markPhrasesXP')?.addEventListener('click', ()=> addXP(5));
     render();
   }
 
-  /* ---------- Goals ---------- */
+  /* ---------- goals ---------- */
   function initGoals(){
     if(document.body.dataset.page!=='goals') return;
     $('#dailyMinutes').value = store.get(K.dailyMinutes,40);
     $('#weeklyHours').value  = store.get(K.weeklyHours,8);
     $('#dailyXP').value      = store.get(K.goalDailyXP,30);
     $('#b2Target').value     = store.get(K.b2Target);
-    const updCountdown = ()=>{ const t=new Date($('#b2Target').value||store.get(K.b2Target)); const days=Math.max(0,Math.ceil((t-new Date())/86400000)); $('#b2Countdown').textContent = `${days} days left`; };
-    updCountdown();
+    const upd = ()=>{ const t=new Date($('#b2Target').value||store.get(K.b2Target)); const days=Math.max(0,Math.ceil((t-new Date())/86400000)); $('#b2Countdown').textContent = `${days} days left`; };
+    upd();
     $('#saveDailyMinutes')?.addEventListener('click', ()=> store.set(K.dailyMinutes, Math.max(10, parseInt($('#dailyMinutes').value||40,10))));
     $('#saveWeeklyHours') ?.addEventListener('click', ()=> store.set(K.weeklyHours,  Math.max(1,  parseInt($('#weeklyHours').value||8,10))));
-    $('#saveDailyXP')     ?.addEventListener('click', ()=>{ store.set(K.goalDailyXP, Math.max(10, parseInt($('#dailyXP').value||30,10))); });
-    $('#saveTarget')      ?.addEventListener('click', ()=>{ const v=$('#b2Target').value; if(v){ store.set(K.b2Target, v); updCountdown(); }});
+    $('#saveDailyXP')     ?.addEventListener('click', ()=> store.set(K.goalDailyXP, Math.max(10, parseInt($('#dailyXP').value||30,10))));
+    $('#saveTarget')      ?.addEventListener('click', ()=>{ const v=$('#b2Target').value; if(v){ store.set(K.b2Target, v); upd(); }});
   }
 
-  /* ---------- Calendar ---------- */
+  /* ---------- calendar ---------- */
   function initCalendar(){
     if(document.body.dataset.page!=='calendar') return;
     const targetInput = $('#target-date'), setBtn=$('#setTarget'), container=$('#calendarContainer'), summary=$('#summary');
@@ -305,33 +374,28 @@
     function getTarget(){ return new Date(store.get(K.calTarget) || store.get(K.b2Target)); }
     function getDone(){ return new Set(store.get(K.calDone,[])); }
     function saveDone(s){ store.set(K.calDone, Array.from(s)); }
-    function renderCal(){
+    function render(){
       const target=getTarget(); targetInput.value = target.toISOString().slice(0,10);
-      const start = new Date(new Date().getFullYear(),0,1);
-      const done = getDone();
-      container.innerHTML='';
-      const today = new Date();
+      const done=getDone(); container.innerHTML='';
+      const today=new Date();
       for(let m=0;m<12;m++){
         const head=document.createElement('div'); head.className='calMonth'; head.textContent = `${MONTHS[m]} ${target.getFullYear()}`; container.appendChild(head);
         const grid=document.createElement('div'); grid.className='calGrid';
         DAYS.forEach(d=>{ const h=document.createElement('div'); h.className='calCell calHead'; h.textContent=d; grid.appendChild(h); });
-        const first = new Date(target.getFullYear(),m,1);
-        const offset = (first.getDay()+6)%7;
-        for(let i=0;i<offset;i++){ const e=document.createElement('div'); e.className='calCell'; e.style.visibility='hidden'; grid.appendChild(e); }
-        const daysInMonth = new Date(target.getFullYear(),m+1,0).getDate();
-        for(let d=1; d<=daysInMonth; d++){
+        const first=new Date(target.getFullYear(),m,1);
+        const offset=(first.getDay()+6)%7; for(let i=0;i<offset;i++){ const e=document.createElement('div'); e.className='calCell'; e.style.visibility='hidden'; grid.appendChild(e); }
+        const nDays=new Date(target.getFullYear(),m+1,0).getDate();
+        for(let d=1; d<=nDays; d++){
           const cell=document.createElement('div'); cell.className='calCell';
-          const dateObj=new Date(target.getFullYear(),m,d);
-          const iso=dateObj.toISOString().slice(0,10);
-          cell.textContent=d;
-          if(iso === today.toISOString().slice(0,10)) cell.classList.add('today');
-          if(dateObj>today) cell.classList.add('future'); else {
+          const dt=new Date(target.getFullYear(),m,d); const iso=dt.toISOString().slice(0,10); cell.textContent=d;
+          if(iso===today.toISOString().slice(0,10)) cell.classList.add('today');
+          if(dt>today) cell.classList.add('future'); else {
+            if(done.has(iso)) cell.classList.add('done');
             cell.addEventListener('click', ()=>{
-              if(cell.classList.toggle('done')) { done.add(iso); } else { done.delete(iso); }
+              if(cell.classList.toggle('done')) done.add(iso); else done.delete(iso);
               saveDone(done); updateSummary();
             });
           }
-          if(done.has(iso)) cell.classList.add('done');
           grid.appendChild(cell);
         }
         container.appendChild(grid);
@@ -340,17 +404,15 @@
     }
     function updateSummary(){
       const target=getTarget(), done=getDone();
-      const start = new Date(new Date().getFullYear(),0,1);
-      const totalDays = Math.floor((target-start)/86400000)+1;
       const daysLeft  = Math.max(0, Math.ceil((target - new Date())/86400000));
-      summary.textContent = `Studied: ${done.size} • Days left: ${daysLeft} • Year total: ${totalDays}`;
+      summary.textContent = `Studied days: ${done.size} • Days left: ${daysLeft}`;
     }
-    setBtn.addEventListener('click', ()=>{ const v=targetInput.value; if(v){ store.set(K.calTarget,v); renderCal(); }});
+    setBtn.addEventListener('click', ()=>{ const v=targetInput.value; if(v){ store.set(K.calTarget,v); render(); }});
     if(!store.get(K.calTarget)) store.set(K.calTarget, store.get(K.b2Target));
-    renderCal();
+    render();
   }
 
-  /* ---------- Data backup ---------- */
+  /* ---------- data backup ---------- */
   function initData(){
     if(document.body.dataset.page!=='data') return;
     $('#exportData')?.addEventListener('click', ()=>{
@@ -368,17 +430,16 @@
     $('#factoryReset')?.addEventListener('click', ()=>{ if(confirm('Erase all data?')){ store.clear(); location.reload(); }});
   }
 
-  /* ---------- JSON helper with fallback ---------- */
-  async function fetchJSON(path, fallback){
-    try{ const r=await fetch(path,{cache:'no-store'}); if(!r.ok) throw 0; return await r.json(); }
-    catch{ return fallback; }
+  /* ---------- nav highlight ---------- */
+  function highlightNav(){
+    const page = document.body.dataset.page || '';
+    $$('.nav a').forEach(a=>{
+      const href=a.getAttribute('href')||'';
+      a.classList.toggle('active', href.includes(page) || (page==='dashboard' && href.includes('index')));
+    });
   }
 
   /* ---------- boot ---------- */
-  function highlightNav(){
-    const page = document.body.dataset.page || '';
-    $$('.nav a').forEach(a=> a.classList.toggle('active', a.getAttribute('href').includes(page)|| (page==='dashboard'&&a.getAttribute('href').includes('index'))));
-  }
   function boot(){
     highlightNav();
     initDashboard(); initComprehension(); initSpeaking(); initListening();
