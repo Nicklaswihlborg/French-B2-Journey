@@ -1,0 +1,15 @@
+{
+  "daily": [
+    "Décris ta routine du matin.",
+    "Parle de ta ville : qu’est-ce que tu aimes ou détestes ?",
+    "Quel est ton objectif cette semaine et pourquoi ?"
+  ],
+  "travel": [
+    "Raconte un voyage mémorable que tu as fait.",
+    "Quels sont les avantages et inconvénients du tourisme de masse ?"
+  ],
+  "work": [
+    "Explique ton travail actuel et les compétences nécessaires.",
+    "Que penses-tu du télétravail ? Avantages et limites ?"
+  ]
+}
