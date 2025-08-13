@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Le vélo en ville",
+    "fr": "Aujourd’hui, la mairie a ouvert une nouvelle piste cyclable au centre-ville pour réduire la circulation et la pollution.",
+    "en": "Today, the city hall opened a new bike lane downtown to reduce traffic and pollution.",
+    "qs": ["Pourquoi la mairie a-t-elle ouvert la piste ?"],
+    "ans": ["Pour réduire la circulation et la pollution."]
+  },
+  {
+    "title": "La canicule en Europe",
+    "fr": "Plusieurs pays européens font face à une canicule prolongée. Les autorités recommandent de rester hydraté et d’éviter les sorties aux heures les plus chaudes.",
+    "en": "Several European countries are facing a prolonged heatwave. Authorities recommend staying hydrated and avoiding going out during the hottest hours.",
+    "qs": ["Que recommandent les autorités ?"],
+    "ans": ["De rester hydraté et d’éviter les sorties aux heures les plus chaudes."]
+  }
+]
