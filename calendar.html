@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar - French B2 Journey</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav>
+    <div class="logo">French B2 Journey</div>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="vocabulary.html">Vocabulary</a></li>
+      <li><a href="calendar.html" class="active">Calendar</a></li>
+    </ul>
+  </nav>
+  <main class="container" id="calendar-page">
+    <h1>Progress Calendar</h1>
+    <p>Set your target date for reaching B2 level, and use the calendar to mark the days you study. The calendar will show how many days you have left and how many days you have studied so far. Click on a past or current date to mark it as studied (green) or to unmark it.</p>
+    <div class="date-input">
+      <label for="target-date">Target Date: </label>
+      <input type="date" id="target-date">
+      <button id="set-date-button">Set</button>
+    </div>
+    <div id="summary">
+      <!-- summary of progress will be inserted here -->
+    </div>
+    <div id="calendar-container">
+      <!-- calendar will be generated here -->
+    </div>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
