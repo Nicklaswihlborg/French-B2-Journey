@@ -1,35 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calendar - French B2 Journey</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendar — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <nav>
-    <div class="logo">French B2 Journey</div>
-    <ul>
-      <li><a href="index.html">Home</a></li>
-      <li><a href="vocabulary.html">Vocabulary</a></li>
-      <li><a href="calendar.html" class="active">Calendar</a></li>
-    </ul>
-  </nav>
-  <main class="container" id="calendar-page">
-    <h1>Progress Calendar</h1>
-    <p>Set your target date for reaching B2 level, and use the calendar to mark the days you study. The calendar will show how many days you have left and how many days you have studied so far. Click on a past or current date to mark it as studied (green) or to unmark it.</p>
-    <div class="date-input">
-      <label for="target-date">Target Date: </label>
-      <input type="date" id="target-date">
-      <button id="set-date-button">Set</button>
-    </div>
-    <div id="summary">
-      <!-- summary of progress will be inserted here -->
-    </div>
-    <div id="calendar-container">
-      <!-- calendar will be generated here -->
-    </div>
+<body data-page="calendar">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html">Comprehension</a>
+      <a href="speaking.html">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
+      <a href="phrases.html">Phrases</a>
+      <a href="goals.html">Goals</a>
+      <a href="calendar.html" class="active">Calendar</a>
+      <a href="data.html">Data</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Progress Calendar</h2>
+      <div class="row wrap">
+        <label>Target date <input type="date" id="target-date" class="input"/></label>
+        <button id="setTarget" class="btn">Set</button>
+        <span id="summary" class="pill">—</span>
+      </div>
+      <div id="calendarContainer"></div>
+    </section>
   </main>
-  <script src="script.js"></script>
+
+  <script src="app.js" defer></script>
 </body>
 </html>
