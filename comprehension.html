@@ -24,18 +24,65 @@
 
   <main class="container">
     <section class="card">
-      <div class="row">
-        <h2 id="artTitle" class="grow">Article</h2>
-        <button id="toggleLang" class="btn">Show EN</button>
+      <div class="tabs">
+        <button class="tab active" data-t="mcq">MCQ</button>
+        <button class="tab" data-t="cloze">Cloze</button>
+        <button class="tab" data-t="sa">Short Answer</button>
+        <button class="tab" data-t="tf">True/False</button>
       </div>
-      <textarea id="artBox" class="mono big" rows="8" readonly></textarea>
-      <div id="qa" class="mt"></div>
-      <div class="row wrap">
-        <button id="prevArt" class="btn">⟵ Prev</button>
-        <button id="nextArt" class="btn">Next ⟶</button>
-        <button id="speakArt" class="btn">🔊 Read</button>
-        <button id="stopSpeakArt" class="btn">⏹️ Stop</button>
-        <button id="markCompXP" class="btn good">+5 xp</button>
+
+      <!-- MCQ -->
+      <div id="pane-mcq">
+        <div class="row wrap">
+          <h2 id="mcqTitle" class="grow">—</h2>
+          <button id="mcqLang" class="btn">Show EN</button>
+          <button id="mcqSpeak" class="btn">🔊 Read</button>
+          <button id="mcqNext" class="btn">Next ⟶</button>
+        </div>
+        <textarea id="mcqText" class="mono" rows="6" readonly></textarea>
+        <div id="mcqOptions" class="mt"></div>
+        <div class="row small"><span id="mcqResult" class="pill"></span></div>
+      </div>
+
+      <!-- Cloze -->
+      <div id="pane-cloze" style="display:none">
+        <div class="row wrap">
+          <h2 id="clozeTitle" class="grow">—</h2>
+          <button id="clozeLang" class="btn">Show EN</button>
+          <button id="clozeSpeak" class="btn">🔊 Read</button>
+          <button id="clozeNext" class="btn">Next ⟶</button>
+        </div>
+        <textarea id="clozeText" class="mono" rows="6" readonly></textarea>
+        <div id="clozeBlanks" class="mt"></div>
+        <button id="clozeCheck" class="btn">Check</button>
+        <span id="clozeScore" class="pill small"></span>
+      </div>
+
+      <!-- Short Answer -->
+      <div id="pane-sa" style="display:none">
+        <div class="row wrap">
+          <h2 id="saTitle" class="grow">—</h2>
+          <button id="saLang" class="btn">Show EN</button>
+          <button id="saSpeak" class="btn">🔊 Read</button>
+          <button id="saNext" class="btn">Next ⟶</button>
+        </div>
+        <textarea id="saText" class="mono" rows="6" readonly></textarea>
+        <textarea id="saInput" class="mono mt" rows="3" placeholder="Réponse courte (FR)…"></textarea>
+        <button id="saScoreBtn" class="btn">Self-check</button>
+        <span id="saScore" class="pill small"></span>
+      </div>
+
+      <!-- True/False -->
+      <div id="pane-tf" style="display:none">
+        <div class="row wrap">
+          <h2 id="tfTitle" class="grow">—</h2>
+          <button id="tfLang" class="btn">Show EN</button>
+          <button id="tfSpeak" class="btn">🔊 Read</button>
+          <button id="tfNext" class="btn">Next ⟶</button>
+        </div>
+        <textarea id="tfText" class="mono" rows="6" readonly></textarea>
+        <div id="tfQ" class="mt"></div>
+        <div class="row small"><span id="tfScore" class="pill"></span></div>
       </div>
     </section>
   </main>
