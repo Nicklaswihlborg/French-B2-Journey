@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Goals — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="goals">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html">Comprehension</a>
+      <a href="speaking.html">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
+      <a href="phrases.html">Phrases</a>
+      <a href="goals.html" class="active">Goals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="data.html">Data</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Daily & Weekly Goals</h2>
+      <div class="row wrap">
+        <label>Daily minutes <input id="dailyMinutes" class="input small" type="number" min="10" step="5" /></label>
+        <button id="saveDailyMinutes" class="btn">Save</button>
+      </div>
+      <div class="row wrap">
+        <label>Weekly hours <input id="weeklyHours" class="input small" type="number" min="1" step="1" /></label>
+        <button id="saveWeeklyHours" class="btn">Save</button>
+      </div>
+      <div class="row wrap">
+        <label>Daily XP target <input id="dailyXP" class="input small" type="number" min="10" step="5" /></label>
+        <button id="saveDailyXP" class="btn">Save</button>
+      </div>
+      <p class="muted">Recommendation A2→B2 by Dec 31: <strong>7–10 h/week</strong> with daily active practice (speak/listen) and spaced vocab review.</p>
+    </section>
+
+    <section class="card">
+      <h2>B2 Target Date</h2>
+      <div class="row wrap">
+        <label>Target date <input id="b2Target" type="date" class="input" /></label>
+        <button id="saveTarget" class="btn">Save</button>
+        <span id="b2Countdown" class="pill">0 days left</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
