@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Comprehension — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="comprehension">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html" class="active">Comprehension</a>
+      <a href="speaking.html">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
+      <a href="phrases.html">Phrases</a>
+      <a href="goals.html">Goals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="data.html">Data</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <div class="row">
+        <h2 id="artTitle" class="grow">Article</h2>
+        <button id="toggleLang" class="btn">Show EN</button>
+      </div>
+      <textarea id="artBox" class="mono big" rows="8" readonly></textarea>
+      <div id="qa" class="mt"></div>
+      <div class="row wrap">
+        <button id="prevArt" class="btn">⟵ Prev</button>
+        <button id="nextArt" class="btn">Next ⟶</button>
+        <button id="speakArt" class="btn">🔊 Read</button>
+        <button id="stopSpeakArt" class="btn">⏹️ Stop</button>
+        <button id="markCompXP" class="btn good">+5 xp</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
