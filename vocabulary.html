@@ -23,22 +23,23 @@
   </header>
 
   <main class="container">
+    <!-- Quick Review (random) -->
     <section class="card">
-      <h2>Quick Review (Leitner)</h2>
+      <h2>Quick Review (Randomized)</h2>
       <div class="fc">
         <div class="fc-card">
           <div class="fc-word" id="qr-front">—</div>
-          <div class="muted" id="qr-info">Due: 0 • Unknown boosted</div>
+          <div class="muted" id="qr-info">Due: 0</div>
         </div>
         <div class="fc-actions">
           <button id="qr-speak" class="btn">🔊</button>
           <button id="qr-show" class="btn">Show</button>
           <button id="qr-dk" class="btn bad">Don’t know</button>
           <button id="qr-know" class="btn good">Know</button>
-          <button id="qr-next" class="btn">Skip</button>
+          <button id="qr-next" class="btn">Next</button>
         </div>
         <div id="qr-back" class="answer" style="display:none"></div>
-        <p class="muted small">Unknown cards are surfaced more often (ease ↓, interval reset, leech counter ↑).</p>
+        <p class="muted small">“Don’t know” boosts a card (more frequent); “Know” schedules it forward (SM-2 style).</p>
       </div>
     </section>
 
@@ -49,26 +50,30 @@
         <input id="vEn" class="input" placeholder="english" />
         <button id="addWord" class="btn">Add</button>
       </div>
-      <div class="row small">
+
+      <div class="row wrap small">
         <span class="pill">Due now: <b id="dueNow">0</b></span>
         <span class="pill">Total cards: <b id="totalCards">0</b></span>
       </div>
+
       <div class="tableWrap">
         <table id="vTable">
           <thead><tr><th>FR</th><th>EN</th><th>Due</th><th>Leech</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
+
       <div class="row wrap">
-        <label class="file"><input id="importVocab" type="file" accept=".json" /><span class="btn">Import JSON</span></label>
+        <label><input id="importVocab" type="file" accept=".json" style="display:none" /><span class="btn">Import JSON</span></label>
         <button id="exportVocab" class="btn">Export JSON</button>
+        <button id="loadStarter" class="btn good">Load 500+ Starter Deck</button>
         <button id="clearVocab" class="btn bad">Clear</button>
       </div>
 
       <h3>Review Session</h3>
       <div class="row wrap">
         <button id="startQuiz" class="btn good">Start due session</button>
-        <button id="skipCard" class="btn">Skip</button>
+        <button id="nextCard" class="btn">Next</button>
         <button id="revealA" class="btn">Reveal</button>
       </div>
       <div id="quizFront" class="quiz"><h2>—</h2></div>
