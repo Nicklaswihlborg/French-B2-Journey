@@ -23,70 +23,62 @@
   </header>
 
   <main class="container">
-    <section class="grid2">
+    <section class="grid3">
       <div class="card">
-        <h2>Progress Today <span id="saveStatus" class="badge"></span></h2>
-        <div class="row">
-          <span id="goalBadge" class="pill">🎯 30 xp/day</span>
+        <h2>Today</h2>
+        <div class="row wrap">
+          <span id="saveStatus" class="badge">…</span>
           <span id="streakBadge" class="pill">🔥 Streak: 0</span>
           <span id="countdownBadge" class="pill">📅 0 days to B2</span>
         </div>
-        <div class="progress">
-          <div id="xpBar" class="bar" style="width:0%"></div>
-        </div>
-        <div class="row">
-          <span>Today: <strong id="xpVal">0</strong> xp</span>
-          <span class="muted">Goal: <strong id="goalVal">30</strong></span>
+        <div class="row wrap">
+          <div class="ring">
+            <canvas id="ring" width="140" height="140"></canvas>
+            <div class="center"><span id="xpLabel">0/30</span></div>
+          </div>
+          <div class="grow">
+            <div class="row"><span class="pill">Goal: <b id="goalVal">30</b> xp</span></div>
+            <div class="progress"><div id="xpBar" class="bar" style="width:0%"></div></div>
+            <div class="row small">
+              <span>Week: <b id="wkXp">0</b> xp</span>
+              <span class="muted">Auto-XP is on: do tasks → xp updates</span>
+            </div>
+          </div>
         </div>
         <div class="row wrap">
-          <button class="btn" data-xp="5" data-flag="listening">+5 Listening</button>
-          <button class="btn" data-xp="5" data-flag="speaking">+5 Speaking</button>
-          <button class="btn" data-xp="5" data-flag="reading">+5 Reading</button>
-          <button class="btn" data-xp="5" data-flag="vocab">+5 Vocab</button>
-          <button class="btn" data-xp="5" data-flag="phrases">+5 Phrases</button>
-          <button id="resetDay" class="btn bad">Reset Today</button>
+          <span class="pill">Next action:</span>
+          <span id="nextAction" class="pill">Loading…</span>
         </div>
-        <div class="row">
-          <button id="decGoal" class="btn">–</button>
-          <button id="incGoal" class="btn">+</button>
-        </div>
-        <p class="muted small">Tip: 30–45 xp/day. 5 xp ≈ one focused mini-task.</p>
       </div>
 
       <div class="card">
-        <h2>Last 14 Days</h2>
+        <h2>Last 14 days</h2>
         <canvas id="chart14" height="130"></canvas>
         <div class="row small">
-          <span>Total 14d: <strong id="sum14">0</strong> xp</span>
-          <span>Week: <strong id="wkXp">0</strong> xp</span>
+          <span>Total: <b id="sum14">0</b> xp</span>
         </div>
+      </div>
+
+      <div class="card">
+        <h2>Today’s Checklist</h2>
+        <ul class="list">
+          <li id="chk-vocab">✅ Vocab review (SRS)</li>
+          <li id="chk-comp">✅ Comprehension activity</li>
+          <li id="chk-speak">✅ Speaking ≥ 60s</li>
+          <li id="chk-listen">✅ Listening task</li>
+          <li id="chk-phr">✅ Phrases set</li>
+        </ul>
+        <p class="muted small">Items auto-check as you complete activities.</p>
       </div>
     </section>
 
-    <section class="grid2">
-      <div class="card">
-        <h2>B2 Plan</h2>
-        <ul class="list">
-          <li><strong>Daily (30–45 min):</strong> 10 min vocab (SRS), 10 min comprehension, 10–15 min speak/listen.</li>
-          <li><strong>Weekly (1–2×):</strong> 30–45 min real conversation (tutor/tandem).</li>
-          <li><strong>Monthly:</strong> mini DELF B1/B2 (listening, reading, production).</li>
-          <li><strong>Quality > Quantity:</strong> feedback, active correction, spaced review.</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <h2>Quick Links</h2>
-        <div class="row wrap">
-          <a class="btn link" href="comprehension.html">Comprehension</a>
-          <a class="btn link" href="speaking.html">Speaking</a>
-          <a class="btn link" href="listening.html">Listening</a>
-          <a class="btn link" href="vocabulary.html">Vocabulary</a>
-          <a class="btn link" href="phrases.html">Phrases</a>
-          <a class="btn link" href="goals.html">Goals</a>
-          <a class="btn link" href="calendar.html">Calendar</a>
-          <a class="btn link" href="data.html">Export/Import</a>
-        </div>
-      </div>
+    <section class="card">
+      <h2>Plan</h2>
+      <ul class="list">
+        <li><b>Daily (30–45 min)</b>: Vocab SRS (10), Comprehension (10), Speak/Listen (10–15).</li>
+        <li><b>Weekly</b>: 1–2× conversation (30–45 min).</li>
+        <li><b>Monthly</b>: mini DELF B1/B2 mock.</li>
+      </ul>
     </section>
   </main>
 
