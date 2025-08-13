@@ -1,0 +1,164 @@
+/* General styles */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fdfdfd;
+  color: #333;
+}
+nav {
+  background: #1976d2;
+  color: #fff;
+  padding: 0.5em 1em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+nav .logo {
+  font-weight: bold;
+  font-size: 1.2em;
+}
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+nav li {
+  margin-left: 1em;
+}
+nav a {
+  color: #fff;
+  text-decoration: none;
+  padding: 0.3em 0.5em;
+  border-radius: 4px;
+}
+nav a:hover {
+  background: #1669bb;
+}
+nav a.active {
+  background: #0d47a1;
+}
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1em;
+}
+h1, h2 {
+  color: #1976d2;
+}
+h1 {
+  font-size: 1.8em;
+  margin-bottom: 0.5em;
+}
+h2 {
+  font-size: 1.4em;
+  margin-top: 1em;
+}
+p {
+  line-height: 1.6;
+}
+.vocab-list {
+  list-style: none;
+  padding-left: 0;
+}
+.vocab-list li {
+  margin: 0.3em 0;
+}
+.play-button {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  font-size: 1em;
+}
+.play-button:hover {
+  color: #0d47a1;
+}
+.play-button:focus {
+  outline: 2px dashed #1976d2;
+}
+#calendar-page p {
+  line-height: 1.5;
+}
+.date-input {
+  margin: 1em 0;
+}
+.date-input input {
+  padding: 0.2em;
+  font-size: 1em;
+}
+.date-input button {
+  padding: 0.3em 0.6em;
+  font-size: 1em;
+  margin-left: 0.5em;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+}
+.date-input button:hover {
+  background: #1669bb;
+}
+#summary {
+  font-weight: bold;
+  margin: 1em 0;
+}
+.calendar-table {
+  border-collapse: collapse;
+  margin-bottom: 2em;
+}
+.calendar-table th, .calendar-table td {
+  border: 1px solid #ccc;
+  width: calc(100%/7);
+  height: 2.5em;
+  text-align: center;
+  vertical-align: middle;
+}
+.calendar-table th {
+  background: #eeeeee;
+  font-weight: normal;
+}
+.calendar-table td {
+  cursor: pointer;
+}
+.calendar-table td.empty {
+  background: #f9f9f9;
+  cursor: default;
+}
+.calendar-table td.done {
+  background: #c8e6c9;
+}
+.calendar-table td.today {
+  border: 2px solid #ff9800;
+}
+.calendar-table td.future {
+  color: #999;
+  cursor: default;
+}
+.calendar-month {
+  text-align: center;
+  margin-top: 1em;
+  margin-bottom: 0.2em;
+  font-weight: bold;
+}
+@media (max-width: 600px) {
+  nav {
+    flex-wrap: wrap;
+  }
+  nav .logo {
+    width: 100%;
+    margin-bottom: 0.5em;
+  }
+  nav ul {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  nav li {
+    margin: 0.3em 0.5em 0.3em 0;
+  }
+  .calendar-table th, .calendar-table td {
+    font-size: 0.8em;
+    height: 2em;
+  }
+}
