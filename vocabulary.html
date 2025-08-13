@@ -1,136 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vocabulary - French B2 Journey</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vocabulary — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <nav>
-    <div class="logo">French B2 Journey</div>
-    <ul>
-      <li><a href="index.html">Home</a></li>
-      <li><a href="vocabulary.html" class="active">Vocabulary</a></li>
-      <li><a href="calendar.html">Calendar</a></li>
-    </ul>
-  </nav>
+<body data-page="vocab">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html">Comprehension</a>
+      <a href="speaking.html">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html" class="active">Vocabulary</a>
+      <a href="phrases.html">Phrases</a>
+      <a href="goals.html">Goals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="data.html">Data</a>
+    </nav>
+  </header>
+
   <main class="container">
-    <h1>Vocabulary Practice</h1>
-    <p>Below is a list of useful French words and expressions at the B2 level, with their English translations. Click the speaker icon 🔊 next to a word to hear its pronunciation.</p>
-    <section>
-      <h2>General Vocabulary</h2>
-      <ul class="vocab-list">
-        <li><strong>Abordable</strong> – affordable <button class="play-button" data-text="Abordable">🔊</button></li>
-        <li><strong>Agréable</strong> – pleasant <button class="play-button" data-text="Agréable">🔊</button></li>
-        <li><strong>Améliorer</strong> – to improve <button class="play-button" data-text="Améliorer">🔊</button></li>
-        <li><strong>Apporter</strong> – to bring <button class="play-button" data-text="Apporter">🔊</button></li>
-        <li><strong>Attirer</strong> – to attract <button class="play-button" data-text="Attirer">🔊</button></li>
-        <li><strong>Avertir</strong> – to warn <button class="play-button" data-text="Avertir">🔊</button></li>
-        <li><strong>Avouer</strong> – to admit <button class="play-button" data-text="Avouer">🔊</button></li>
-        <li><strong>Bénéfice</strong> – profit, benefit <button class="play-button" data-text="Bénéfice">🔊</button></li>
-        <li><strong>Bien que</strong> – although <button class="play-button" data-text="Bien que">🔊</button></li>
-        <li><strong>Bilan</strong> – assessment, outcome <button class="play-button" data-text="Bilan">🔊</button></li>
-        <li><strong>Bref</strong> – in short, briefly <button class="play-button" data-text="Bref">🔊</button></li>
-        <li><strong>Capable</strong> – capable <button class="play-button" data-text="Capable">🔊</button></li>
-        <li><strong>Chaleureux</strong> – warm, friendly <button class="play-button" data-text="Chaleureux">🔊</button></li>
-        <li><strong>Chômage</strong> – unemployment <button class="play-button" data-text="Chômage">🔊</button></li>
-        <li><strong>Climatisation</strong> – air conditioning <button class="play-button" data-text="Climatisation">🔊</button></li>
-      </ul>
+    <section class="card">
+      <h2>Quick Review (Leitner)</h2>
+      <div class="fc">
+        <div class="fc-card">
+          <div class="fc-word" id="qr-front">—</div>
+          <div class="muted" id="qr-info">Due: 0 • Unknown boosted</div>
+        </div>
+        <div class="fc-actions">
+          <button id="qr-speak" class="btn">🔊</button>
+          <button id="qr-show" class="btn">Show</button>
+          <button id="qr-dk" class="btn bad">Don’t know</button>
+          <button id="qr-know" class="btn good">Know</button>
+          <button id="qr-next" class="btn">Skip</button>
+        </div>
+        <div id="qr-back" class="answer" style="display:none"></div>
+        <p class="muted small">Unknown cards are surfaced more often (ease ↓, interval reset, leech counter ↑).</p>
+      </div>
     </section>
-    <section>
-      <h2>Expressions and Phrases</h2>
-      <ul class="vocab-list">
-        <li><strong>À condition que</strong> – provided that <button class="play-button" data-text="À condition que">🔊</button></li>
-        <li><strong>À l'aise</strong> – at ease <button class="play-button" data-text="À l'aise">🔊</button></li>
-        <li><strong>À moins que</strong> – unless <button class="play-button" data-text="À moins que">🔊</button></li>
-        <li><strong>Au fur et à mesure</strong> – gradually <button class="play-button" data-text="Au fur et à mesure">🔊</button></li>
-        <li><strong>Autrement dit</strong> – in other words <button class="play-button" data-text="Autrement dit">🔊</button></li>
-        <li><strong>Ça m'est égal</strong> – I don’t mind <button class="play-button" data-text="Ça m'est égal">🔊</button></li>
-        <li><strong>D'ailleurs</strong> – besides, moreover <button class="play-button" data-text="D'ailleurs">🔊</button></li>
-        <li><strong>En tant que</strong> – as (in the capacity of) <button class="play-button" data-text="En tant que">🔊</button></li>
-        <li><strong>En ce qui concerne</strong> – regarding, concerning <button class="play-button" data-text="En ce qui concerne">🔊</button></li>
-        <li><strong>Faire face à</strong> – to confront, to face <button class="play-button" data-text="Faire face à">🔊</button></li>
-        <li><strong>Il vaut mieux</strong> – it is better (to) <button class="play-button" data-text="Il vaut mieux">🔊</button></li>
-        <li><strong>Jusqu'à ce que</strong> – until <button class="play-button" data-text="Jusqu'à ce que">🔊</button></li>
-        <li><strong>Malgré</strong> – despite <button class="play-button" data-text="Malgré">🔊</button></li>
-        <li><strong>Par conséquent</strong> – therefore, consequently <button class="play-button" data-text="Par conséquent">🔊</button></li>
-        <li><strong>Quant à</strong> – as for, regarding <button class="play-button" data-text="Quant à">🔊</button></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Advanced Adjectives &amp; Adverbs</h2>
-      <ul class="vocab-list">
-        <li><strong>Adroit</strong> – skillful <button class="play-button" data-text="Adroit">🔊</button></li>
-        <li><strong>Affreux</strong> – awful <button class="play-button" data-text="Affreux">🔊</button></li>
-        <li><strong>Assidu</strong> – diligent <button class="play-button" data-text="Assidu">🔊</button></li>
-        <li><strong>Bizarre</strong> – strange, odd <button class="play-button" data-text="Bizarre">🔊</button></li>
-        <li><strong>Compatissant</strong> – compassionate <button class="play-button" data-text="Compatissant">🔊</button></li>
-        <li><strong>Confus</strong> – confused <button class="play-button" data-text="Confus">🔊</button></li>
-        <li><strong>Déçu</strong> – disappointed <button class="play-button" data-text="Déçu">🔊</button></li>
-        <li><strong>Éblouissant</strong> – dazzling <button class="play-button" data-text="Éblouissant">🔊</button></li>
-        <li><strong>Économe</strong> – thrifty <button class="play-button" data-text="Économe">🔊</button></li>
-        <li><strong>Égoïste</strong> – selfish <button class="play-button" data-text="Égoïste">🔊</button></li>
-        <li><strong>Ému</strong> – moved, touched <button class="play-button" data-text="Ému">🔊</button></li>
-        <li><strong>Éphémère</strong> – short-lived <button class="play-button" data-text="Éphémère">🔊</button></li>
-        <li><strong>Exigeant</strong> – demanding <button class="play-button" data-text="Exigeant">🔊</button></li>
-        <li><strong>Fidèle</strong> – faithful <button class="play-button" data-text="Fidèle">🔊</button></li>
-        <li><strong>Habile</strong> – clever, skillful <button class="play-button" data-text="Habile">🔊</button></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Nouns</h2>
-      <ul class="vocab-list">
-        <li><strong>L’actualité</strong> – current events <button class="play-button" data-text="Actualité">🔊</button></li>
-        <li><strong>L’amitié</strong> – friendship <button class="play-button" data-text="Amitié">🔊</button></li>
-        <li><strong>L’avantage</strong> – advantage <button class="play-button" data-text="Avantage">🔊</button></li>
-        <li><strong>Le comportement</strong> – behavior <button class="play-button" data-text="Comportement">🔊</button></li>
-        <li><strong>La connaissance</strong> – knowledge <button class="play-button" data-text="Connaissance">🔊</button></li>
-        <li><strong>Le défi</strong> – challenge <button class="play-button" data-text="Défi">🔊</button></li>
-        <li><strong>Le développement</strong> – development <button class="play-button" data-text="Développement">🔊</button></li>
-        <li><strong>L’efficacité</strong> – efficiency <button class="play-button" data-text="Efficacité">🔊</button></li>
-        <li><strong>L’employeur</strong> – employer <button class="play-button" data-text="Employeur">🔊</button></li>
-        <li><strong>L’enquête</strong> – investigation, survey <button class="play-button" data-text="Enquête">🔊</button></li>
-        <li><strong>L’entretien</strong> – interview, maintenance <button class="play-button" data-text="Entretien">🔊</button></li>
-        <li><strong>L’environnement</strong> – environment <button class="play-button" data-text="Environnement">🔊</button></li>
-        <li><strong>L’espoir</strong> – hope <button class="play-button" data-text="Espoir">🔊</button></li>
-        <li><strong>L’exigence</strong> – requirement, demand <button class="play-button" data-text="Exigence">🔊</button></li>
-        <li><strong>L’habileté</strong> – skill, ability <button class="play-button" data-text="Habileté">🔊</button></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Important Verbs</h2>
-      <ul class="vocab-list">
-        <li><strong>Accueillir</strong> – to welcome <button class="play-button" data-text="Accueillir">🔊</button></li>
-        <li><strong>Apercevoir</strong> – to notice, to glimpse <button class="play-button" data-text="Apercevoir">🔊</button></li>
-        <li><strong>Appartenir</strong> – to belong (to) <button class="play-button" data-text="Appartenir">🔊</button></li>
-        <li><strong>Contester</strong> – to contest, to challenge <button class="play-button" data-text="Contester">🔊</button></li>
-        <li><strong>Décevoir</strong> – to disappoint <button class="play-button" data-text="Décevoir">🔊</button></li>
-        <li><strong>Éviter</strong> – to avoid <button class="play-button" data-text="Éviter">🔊</button></li>
-        <li><strong>Fournir</strong> – to provide, to supply <button class="play-button" data-text="Fournir">🔊</button></li>
-        <li><strong>Gérer</strong> – to manage <button class="play-button" data-text="Gérer">🔊</button></li>
-        <li><strong>Mener</strong> – to lead <button class="play-button" data-text="Mener">🔊</button></li>
-        <li><strong>Parvenir</strong> – to achieve, to reach <button class="play-button" data-text="Parvenir">🔊</button></li>
-        <li><strong>Prévoir</strong> – to foresee, to plan <button class="play-button" data-text="Prévoir">🔊</button></li>
-        <li><strong>Réagir</strong> – to react <button class="play-button" data-text="Réagir">🔊</button></li>
-        <li><strong>Remarquer</strong> – to notice <button class="play-button" data-text="Remarquer">🔊</button></li>
-        <li><strong>Ressentir</strong> – to feel (emotion) <button class="play-button" data-text="Ressentir">🔊</button></li>
-        <li><strong>Soutenir</strong> – to support <button class="play-button" data-text="Soutenir">🔊</button></li>
-      </ul>
-    </section>
-    <section>
-      <h2>Idiomatic Expressions</h2>
-      <ul class="vocab-list">
-        <li><strong>Avoir le cafard</strong> – to feel down/depressed <button class="play-button" data-text="Avoir le cafard">🔊</button></li>
-        <li><strong>C’est la goutte d’eau qui fait déborder le vase</strong> – that’s the last straw <button class="play-button" data-text="C'est la goutte d'eau qui fait déborder le vase">🔊</button></li>
-        <li><strong>Donner un coup de main</strong> – to give a hand (to help) <button class="play-button" data-text="Donner un coup de main">🔊</button></li>
-        <li><strong>Être au courant</strong> – to be informed/aware <button class="play-button" data-text="Être au courant">🔊</button></li>
-        <li><strong>Faire d’une pierre deux coups</strong> – to kill two birds with one stone <button class="play-button" data-text="Faire d'une pierre deux coups">🔊</button></li>
-        <li><strong>Mettre la main à la pâte</strong> – to pitch in, to help out <button class="play-button" data-text="Mettre la main à la pâte">🔊</button></li>
-        <li><strong>Ne pas être dans son assiette</strong> – to feel under the weather <button class="play-button" data-text="Ne pas être dans son assiette">🔊</button></li>
-      </ul>
+
+    <section class="card">
+      <h2>Your Deck</h2>
+      <div class="row wrap">
+        <input id="vFr" class="input" placeholder="français" />
+        <input id="vEn" class="input" placeholder="english" />
+        <button id="addWord" class="btn">Add</button>
+      </div>
+      <div class="row small">
+        <span class="pill">Due now: <b id="dueNow">0</b></span>
+        <span class="pill">Total cards: <b id="totalCards">0</b></span>
+      </div>
+      <div class="tableWrap">
+        <table id="vTable">
+          <thead><tr><th>FR</th><th>EN</th><th>Due</th><th>Leech</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row wrap">
+        <label class="file"><input id="importVocab" type="file" accept=".json" /><span class="btn">Import JSON</span></label>
+        <button id="exportVocab" class="btn">Export JSON</button>
+        <button id="clearVocab" class="btn bad">Clear</button>
+      </div>
+
+      <h3>Review Session</h3>
+      <div class="row wrap">
+        <button id="startQuiz" class="btn good">Start due session</button>
+        <button id="skipCard" class="btn">Skip</button>
+        <button id="revealA" class="btn">Reveal</button>
+      </div>
+      <div id="quizFront" class="quiz"><h2>—</h2></div>
+      <div class="row">
+        <button id="rateAgain" class="btn bad" disabled>Again</button>
+        <button id="rateHard" class="btn" disabled>Hard</button>
+        <button id="rateGood" class="btn" disabled>Good</button>
+        <button id="rateEasy" class="btn" disabled>Easy</button>
+      </div>
+      <div id="quizBack" class="answer"></div>
     </section>
   </main>
-  <script src="script.js"></script>
+
+  <script src="app.js" defer></script>
 </body>
 </html>
