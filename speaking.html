@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Speaking — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="speaking">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html">Comprehension</a>
+      <a href="speaking.html" class="active">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
+      <a href="phrases.html">Phrases</a>
+      <a href="goals.html">Goals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="data.html">Data</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <div class="row">
+        <h2 class="grow">Prompt</h2>
+        <select id="promptCat" class="select"></select>
+        <button id="newPrompt" class="btn">New</button>
+      </div>
+      <textarea id="promptBox" class="mono big" rows="4" readonly></textarea>
+      <div class="row wrap">
+        <button id="speakPrompt" class="btn">🔊 Read</button>
+        <button id="askMic" class="btn">🎙️ Request Mic</button>
+        <button id="startRec" class="btn good">▶️ Record</button>
+        <button id="stopRec" class="btn bad" disabled>⏹️ Stop</button>
+      </div>
+      <div class="row small">
+        <span id="micState" class="pill">🎙️ Micro: unknown</span>
+        <span id="recState" class="pill">🗣️ State: idle</span>
+      </div>
+      <textarea id="speechOut" class="mono big" rows="8" placeholder="Your speech transcript will appear here…"></textarea>
+      <div class="row">
+        <button id="markSpeakXP" class="btn good">+5 xp</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
