@@ -23,6 +23,27 @@
   </header>
 
   <main class="container">
+    <!-- NEW: Sentence Flashcards (random) -->
+    <section class="card">
+      <h2>Sentence Flashcards (Everyday FR)</h2>
+      <div class="fc">
+        <div class="fc-card">
+          <div class="fc-word" id="cf-front">—</div>
+          <div class="muted" id="cf-info">Due: 0</div>
+        </div>
+        <div class="fc-actions">
+          <button id="cf-speak" class="btn">🔊</button>
+          <button id="cf-show" class="btn">Show</button>
+          <button id="cf-dk" class="btn bad">Don’t know</button>
+          <button id="cf-know" class="btn good">Know</button>
+          <button id="cf-next" class="btn">Next</button>
+        </div>
+        <div id="cf-back" class="answer" style="display:none"></div>
+        <p class="muted small">Works like the vocab flashcards: “Don’t know” boosts frequency; “Know” schedules forward.</p>
+      </div>
+    </section>
+
+    <!-- Existing multi-mode comprehension -->
     <section class="card">
       <div class="tabs">
         <button class="tab active" data-t="mcq">MCQ</button>
