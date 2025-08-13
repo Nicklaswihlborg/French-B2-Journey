@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vocabulary — French B2 Journey</title>
+  <title>Listening — French B2 Journey</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body data-page="vocab">
+<body data-page="listening">
   <header class="topbar">
     <div class="brand">🇫🇷 French B2 Journey</div>
     <nav class="nav">
       <a href="index.html">Dashboard</a>
       <a href="comprehension.html">Comprehension</a>
       <a href="speaking.html">Speaking</a>
-      <a href="listening.html">Listening</a>
-      <a href="vocabulary.html" class="active">Vocabulary</a>
+      <a href="listening.html" class="active">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
       <a href="phrases.html">Phrases</a>
       <a href="goals.html">Goals</a>
       <a href="calendar.html">Calendar</a>
@@ -24,50 +24,45 @@
 
   <main class="container">
     <section class="card">
-      <h2>Add Words</h2>
-      <div class="row wrap">
-        <input id="vFr" class="input" placeholder="français" />
-        <input id="vEn" class="input" placeholder="english" />
-        <button id="addWord" class="btn">Add</button>
-        <button id="markVocabXP" class="btn good">+5 xp</button>
+      <div class="tabs">
+        <button class="tab active" data-t="dict">Dictation</button>
+        <button class="tab" data-t="news">News Bulletin</button>
       </div>
-      <div class="row small">
-        <span class="pill">Due now: <strong id="dueNow">0</strong></span>
-        <span class="pill">Total cards: <strong id="totalCards">0</strong></span>
-      </div>
-      <div class="tableWrap">
-        <table id="vTable">
-          <thead><tr><th>FR</th><th>EN</th><th>Due</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="row wrap">
-        <label class="file">
-          <input id="importVocab" type="file" accept=".json" />
-          <span class="btn">Import JSON</span>
-        </label>
-        <button id="exportVocab" class="btn">Export JSON</button>
-        <button id="clearVocab" class="btn bad">Clear</button>
-      </div>
-    </section>
 
-    <section class="card">
-      <h2>Review (SRS)</h2>
-      <div class="row">
-        <button id="startQuiz" class="btn good">Start due session</button>
-        <button id="skipCard" class="btn">Skip</button>
-        <button id="revealA" class="btn">Reveal</button>
+      <!-- Dictation -->
+      <div id="pane-dict">
+        <div class="row">
+          <h2 class="grow">Dictation</h2>
+          <button id="playDictation" class="btn">🔊 Play</button>
+          <button id="replayDictation" class="btn">↻ Replay</button>
+          <button id="nextDictation" class="btn">Next ⟶</button>
+        </div>
+        <div class="row small"><span id="dictationHint" class="pill">Hint</span></div>
+        <textarea id="dictationInput" class="mono" rows="5" placeholder="Type what you hear…"></textarea>
+        <div class="row">
+          <button id="checkDictation" class="btn">Check</button>
+          <span id="dictationScore" class="pill">Score: 0%</span>
+        </div>
       </div>
-      <div id="quizFront" class="quiz">
-        <h2>—</h2>
+
+      <!-- News -->
+      <div id="pane-news" style="display:none">
+        <div class="row">
+          <h2 class="grow">News Bulletin (FR)</h2>
+          <select id="newsTopic" class="input" style="max-width:220px">
+            <option value="france">France</option>
+            <option value="world">Monde</option>
+            <option value="economy">Économie</option>
+            <option value="tech">Technologie</option>
+            <option value="sport">Sport</option>
+            <option value="culture">Culture</option>
+          </select>
+          <button id="playNews" class="btn">🔊 Play</button>
+          <button id="stopNews" class="btn bad">⏹ Stop</button>
+        </div>
+        <textarea id="newsBox" class="mono" rows="6" readonly></textarea>
+        <p class="muted small">Listening to a bulletin auto-awards XP once.</p>
       </div>
-      <div class="row">
-        <button id="rateAgain" class="btn bad" disabled>Again</button>
-        <button id="rateHard" class="btn" disabled>Hard</button>
-        <button id="rateGood" class="btn" disabled>Good</button>
-        <button id="rateEasy" class="btn" disabled>Easy</button>
-      </div>
-      <div id="quizBack" class="answer"></div>
     </section>
   </main>
 
