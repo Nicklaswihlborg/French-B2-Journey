@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phrases — French B2 Journey</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="phrases">
+  <header class="topbar">
+    <div class="brand">🇫🇷 French B2 Journey</div>
+    <nav class="nav">
+      <a href="index.html">Dashboard</a>
+      <a href="comprehension.html">Comprehension</a>
+      <a href="speaking.html">Speaking</a>
+      <a href="listening.html">Listening</a>
+      <a href="vocabulary.html">Vocabulary</a>
+      <a href="phrases.html" class="active">Phrases</a>
+      <a href="goals.html">Goals</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="data.html">Data</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <div class="row">
+        <h2 class="grow">Daily Phrases</h2>
+        <button id="refreshPhrases" class="btn">↻ New Set</button>
+        <button id="speakAllPhrases" class="btn">🔊 Speak All</button>
+        <button id="markPhrasesXP" class="btn good">+5 xp</button>
+      </div>
+      <div id="phraseList"></div>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
