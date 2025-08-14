@@ -1,0 +1,9 @@
+{
+  "name": "French B2 Journey",
+  "short_name": "B2 Journey",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": []
+}
