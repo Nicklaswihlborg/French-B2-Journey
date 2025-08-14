@@ -1,0 +1,28 @@
+{
+  "items": [
+    { "id": 1,  "level": "A2", "hint": "polite request", "text": "Pouvez-vous répéter plus lentement, s’il vous plaît ?" },
+    { "id": 2,  "level": "A2", "hint": "at the station", "text": "Le train pour Genève part du quai numéro trois." },
+    { "id": 3,  "level": "A2", "hint": "ordering", "text": "Je voudrais un café et un croissant, s’il vous plaît." },
+    { "id": 4,  "level": "A2", "hint": "asking directions", "text": "Excusez-moi, où se trouve la pharmacie la plus proche ?" },
+    { "id": 5,  "level": "B1", "hint": "daily routine", "text": "Le matin, je lis les nouvelles pendant que je bois mon café." },
+    { "id": 6,  "level": "B1", "hint": "plans", "text": "Nous allons au marché samedi pour acheter des produits frais." },
+    { "id": 7,  "level": "B1", "hint": "transport", "text": "Il y a des travaux sur la route, le bus aura du retard." },
+    { "id": 8,  "level": "B1", "hint": "health", "text": "J’essaie de faire de l’exercice trois fois par semaine." },
+    { "id": 9,  "level": "B2", "hint": "work", "text": "Je termine ce projet avant la fin du mois pour respecter l’échéance." },
+    { "id": 10, "level": "B2", "hint": "opinion", "text": "À mon avis, il faudrait investir davantage dans les transports durables." },
+    { "id": 11, "level": "B2", "hint": "news tone", "text": "Les autorités locales encouragent l’usage du vélo en centre-ville." },
+    { "id": 12, "level": "B1", "hint": "weather", "text": "Il va pleuvoir cet après-midi, prends un parapluie." },
+    { "id": 13, "level": "A2", "hint": "shopping", "text": "Combien ça coûte et puis-je payer par carte ?" },
+    { "id": 14, "level": "B1", "hint": "apology", "text": "Je suis désolé du retard, il y avait des embouteillages." },
+    { "id": 15, "level": "B2", "hint": "remote work", "text": "Le télétravail offre plus de flexibilité mais demande une bonne organisation." },
+    { "id": 16, "level": "B1", "hint": "travel", "text": "Nous changeons de train à Lausanne avec une courte correspondance." },
+    { "id": 17, "level": "B1", "hint": "restaurant", "text": "J’ai réservé une table pour deux à dix-neuf heures." },
+    { "id": 18, "level": "A2", "hint": "identity", "text": "Je m’appelle Nick et j’habite en Valais." },
+    { "id": 19, "level": "B2", "hint": "energy", "text": "L’installation de panneaux solaires s’accélère dans la région." },
+    { "id": 20, "level": "B1", "hint": "hobbies", "text": "Le week-end, nous faisons des randonnées près du lac." },
+    { "id": 21, "level": "B2", "hint": "society", "text": "Selon le rapport, la participation citoyenne a augmenté cette année." },
+    { "id": 22, "level": "A2", "hint": "help", "text": "Aidez-moi, s’il vous plaît, je suis un peu perdu." },
+    { "id": 23, "level": "B1", "hint": "tech", "text": "La connexion Internet est lente, je redémarre le routeur." },
+    { "id": 24, "level": "B2", "hint": "economy", "text": "L’inflation se stabilise tandis que la demande intérieure reste contrastée." }
+  ]
+}
