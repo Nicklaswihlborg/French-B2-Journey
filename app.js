@@ -1216,7 +1216,7 @@
       const correct = ans.filter(w=> ref.includes(w)).length;
       const score = Math.round(100 * correct / Math.max(1, ref.length));
       $("#dpScore").textContent = `Score: ${score}%`;
-      if(score>=60){ 
+      if(score>=60){
         // award listening task xp and can-do
         const A=awMap(); const d=today(); A[d]=A[d]||{}; A[d].listenTask=(A[d].listenTask||0)+1; store2.set(K2.aw,A);
         const X=xpMap(); X[d]=(X[d]||0)+5; store2.set(K2.xp,X);
@@ -1591,7 +1591,7 @@
     bootDaily();
   }
 })();
-​
+
  /* =========================
    Acceptance Criteria + UI Tweaks + Content Packs
    (SAFE version: no template strings)
@@ -1638,7 +1638,7 @@
     return fmt(s);
   }
   function lastNDays(n, getter){
-    var out=[], i; 
+    var out=[], i;
     for(i=n-1;i>=0;i--){ var dt=new Date(); dt.setDate(dt.getDate()-i); var k=fmt(dt); out.push(getter(k)); }
     return out;
   }
@@ -1666,7 +1666,7 @@
     var speakAvg7 = Math.round( (s7.reduce(function(a,b){return a+b;},0)/7) / 60 );
 
     var lsDays = lastNDays(7, function(k){ return L[k]||{done:0,avg:0}; });
-    var tot=0, cnt=0; 
+    var tot=0, cnt=0;
     lsDays.forEach(function(x){ if(x.done>0){ tot += (x.avg||0)*x.done; cnt += x.done; } });
     var listenAvgW = Math.round( tot / Math.max(1,cnt) );
 
@@ -1909,7 +1909,7 @@
     var main=$('.container'); if(!main) return;
     if($('#wpmCard')) return;
 
-    function load(url, cb, fb){ 
+    function load(url, cb, fb){
       fetch(url).then(function(r){ return r.json(); }).then(function(js){ cb(js); })
       .catch(function(){ cb(fb||[{fr:"Le français est une belle langue à pratiquer chaque jour."}]); });
     }
