@@ -776,3 +776,492 @@
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot2); else boot2();
 })();
+/* =========================
+   Deeper Improvements Module
+   (append-only; no breaking changes)
+   ========================= */
+(() => {
+  "use strict";
+
+  // ---------- tiny utils ----------
+  function $(s, r=document){ return r.querySelector(s); }
+  function $$(s, r=document){ return Array.from(r.querySelectorAll(s)); }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function addDays(d, n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function fmt(d){ return new Date(d).toISOString().slice(0,10); }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function normalizeText(s, relaxed){
+    s = (s||"").toLowerCase().trim();
+    // Remove punctuation always for scoring
+    s = s.replace(/[.,!?;:'"()\-–—]/g, " ");
+    if(relaxed){
+      // Remove accents/diacritics (NFD)
+      s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+    }
+    return s.replace(/\s+/g, " ");
+  }
+  function loadJSON(url, fallback){
+    return fetch(url).then(r=>r.json()).catch(()=>fallback);
+  }
+
+  // ---------- storage facade ----------
+  const store2 = (typeof store!=="undefined") ? store : {
+    get: (k,d)=>{ try{const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch{return d} },
+    set: (k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch{} }
+  };
+  const K2 = (typeof K!=="undefined") ? K : {};
+  // existing keys (from app) we reuse when present:
+  K2.xp       = K2.xp       || 'fj_xp_by_day';
+  K2.aw       = K2.aw       || 'fj_awards_by_day';
+  K2.goal     = K2.goal     || 'fj_goal_xp';
+  K2.b2       = K2.b2       || 'fj_b2_target';
+  K2.listenProg = K2.listenProg || 'fj_listen_prog';
+  K2.vocabProg  = K2.vocabProg  || 'fj_vocab_prog';
+  // new keys:
+  K2.speakProg  = K2.speakProg  || 'fj_speak_prog';    // seconds spoken per day (was added in quick-wins)
+  K2.canDo      = 'fj_can_do';                         // per-day descriptor hits
+  K2.weekTask   = 'fj_week_task';                      // weekly B1/B2 mock task
+  K2.sprint     = 'fj_sprint';                         // one-week sprint theme
+  K2.notify     = 'fj_notify_enabled';                 // notifications on/off
+
+  function xpMap(){ return store2.get(K2.xp, {}); }
+  function awMap(){ return store2.get(K2.aw, {}); }
+
+  // ---------- CEFR can-do mapping (lightweight) ----------
+  // We log descriptors when we detect completion of certain activities.
+  // You can expand this later by editing data/can_do.json.
+  const CAN_DO_DEFAULTS = {
+    "listening:main_points": "Comprendre les points essentiels de messages oraux clairs et d’une certaine longueur.",
+    "speaking:monologue": "Faire une présentation simple et articuler une argumentation claire pendant ~1–2 minutes.",
+    "reading:short_texts": "Comprendre des textes factuels sur des sujets courants.",
+    "interaction:opinions": "Exprimer son opinion, accorder/désaccorder avec nuances.",
+    "mediation:summary": "Résumer des informations de différentes sources."
+  };
+  function logCanDo(id){
+    const d=today();
+    const m = store2.get(K2.canDo,{});
+    m[d] = m[d] || {};
+    m[d][id] = (m[d][id]||0) + 1;
+    store2.set(K2.canDo, m);
+  }
+  function lastNDaysSeries(n, getter){
+    const out=[];
+    for(let i=n-1;i>=0;i--){
+      const dt=new Date(); dt.setDate(dt.getDate()-i);
+      const key=fmt(dt);
+      out.push({d:key, v:getter(key)});
+    }
+    return out;
+  }
+
+  // ---------- Dashboard: inject Analytics + Can-Do coverage ----------
+  function injectAnalytics(){
+    if((document.body.dataset.page||"")!=="dashboard") return;
+    const container = $(".container");
+    if(!container || $("#ai-analytics")) return;
+
+    // Build card
+    const card = document.createElement("section");
+    card.className = "card";
+    card.id = "ai-analytics";
+    card.innerHTML = `
+      <h2>Analytics</h2>
+      <div class="row wrap small">
+        <span class="pill" id="anaSpeak">Spoken today: 0 min</span>
+        <span class="pill" id="anaListen">Listening avg (7d): 0%</span>
+        <span class="pill" id="anaVocab">Vocab retention (7d): —</span>
+      </div>
+      <div class="muted small">Tips: keep spoken ≥ 7 min/day and listening accuracy ≥ 80% weekly.</div>
+    `;
+    container.insertBefore(card, container.children[1] || null);
+
+    // Compute metrics
+    const speak = store2.get(K2.speakProg,{});
+    const sToday = Math.round((speak[today()]?.seconds||0)/60);
+    $("#anaSpeak").textContent = `Spoken today: ${sToday} min`;
+
+    const L = store2.get(K2.listenProg,{});
+    const acc7 = lastNDaysSeries(7, d => (L[d]?.avg||0)).map(x=>x.v);
+    const listenAvg = Math.round(acc7.filter(x=>x>0).reduce((s,x)=>s+x,0) / Math.max(1, acc7.filter(x=>x>0).length));
+    $("#anaListen").textContent = `Listening avg (7d): ${isFinite(listenAvg)?listenAvg:0}%`;
+
+    const V = store2.get(K2.vocabProg,{});
+    const days = lastNDaysSeries(7, d => V[d]||{reviews:0, know:0, dk:0});
+    let totR=0, totKnow=0, totDk=0;
+    days.forEach(x=>{ totR+=x.v.reviews||0; totKnow+=x.v.know||0; totDk+=x.v.dk||0; });
+    const retention = totR? Math.round(100 * totKnow/Math.max(1, totR)) : 0;
+    $("#anaVocab").textContent = `Vocab retention (7d): ${retention}%`;
+  }
+
+  async function injectCanDoPanel(){
+    if((document.body.dataset.page||"")!=="dashboard") return;
+    const container = $(".container");
+    if(!container || $("#canDoPanel")) return;
+
+    const data = await loadJSON("data/can_do.json", CAN_DO_DEFAULTS);
+    const dmap = (typeof data==="object" && !Array.isArray(data)) ? data : CAN_DO_DEFAULTS;
+
+    const m = store2.get(K2.canDo,{});
+    const todayHits = m[today()]||{};
+    const weekHits = lastNDaysSeries(7, d => m[d]||{}).map(x=>x.v);
+
+    function descLine(id, text){
+      const todayC = todayHits[id]||0;
+      const weeklyC = weekHits.reduce((s,o)=>s+(o[id]||0),0);
+      const cls = weeklyC>0 ? "tag ok" : "tag";
+      return `<div class="${cls}">${text} <small>(${weeklyC}× wk)</small>${todayC?` <small>• today</small>`:''}</div>`;
+    }
+
+    const card = document.createElement("section");
+    card.className = "card";
+    card.id = "canDoPanel";
+    card.innerHTML = `
+      <h2>Can-Do Coverage</h2>
+      <div id="canDoList" class="tags"></div>
+      <p class="muted small">These auto-tick when you do Listening 3×, speak ≥60s, complete phrase set, or finish comprehension today.</p>
+    `;
+    container.insertBefore(card, container.children[2] || null);
+
+    $("#canDoList").innerHTML = Object.entries(dmap)
+      .map(([id,txt]) => descLine(id, txt)).join("");
+
+    // Heuristics to auto-log can-dos from your existing progress maps
+    const A = awMap()[today()]||{};
+    if((store2.get(K2.listenProg,{})[today()]?.done||0) >= 3) logCanDo("listening:main_points");
+    if((store2.get(K2.speakProg,{})[today()]?.seconds||0) >= 60) logCanDo("speaking:monologue");
+    if(A.phrSet>=1) logCanDo("interaction:opinions");
+  }
+
+  // ---------- Weekly mock task (B1/B2 mini) ----------
+  function weekStart(d=new Date()){
+    const day=(d.getDay()+6)%7; // Monday=0
+    const s=new Date(d); s.setHours(0,0,0,0); s.setDate(s.getDate()-day);
+    return fmt(s);
+  }
+  async function ensureWeeklyTask(){
+    const wt = store2.get(K2.weekTask,{});
+    const wk = weekStart(new Date());
+    if(wt[wk]) return wt[wk];
+
+    const themes = await loadJSON("data/sprint_themes.json", {themes:["Daily","Travel","Work","News","Opinions"]});
+    // If a sprint is set, prefer it; else pick "News"
+    const sprint = store2.get(K2.sprint, "News");
+    const theme = themes.themes.includes(sprint) ? sprint : "News";
+
+    // Use your prompts.json to pick a speaking prompt
+    const prompts = await loadJSON("data/prompts.json", {daily:["Parle de ta journée."]});
+    const bank = prompts[theme.toLowerCase()] || prompts.daily || ["Parle de ta journée."];
+
+    const idx = (parseInt(weekStart().replace(/-/g,''),10) % bank.length);
+    const prompt = bank[idx];
+
+    wt[wk] = {
+      week: wk,
+      theme,
+      prompt,
+      status: "pending",
+      seconds: 0,
+      notes: ""
+    };
+    store2.set(K2.weekTask, wt);
+    return wt[wk];
+  }
+
+  function injectWeeklyTask(){
+    if((document.body.dataset.page||"")!=="speaking") return;
+    const main = $(".container");
+    if(!main || $("#weeklyTask")) return;
+
+    const card = document.createElement("section");
+    card.className = "card";
+    card.id = "weeklyTask";
+    card.innerHTML = `
+      <h2>Weekly Mock Task (B1/B2)</h2>
+      <div class="muted small">Goal: speak ≥ 90s, then summarise in 2–3 phrases.</div>
+      <div id="wtBody">Loading…</div>
+    `;
+    main.appendChild(card);
+
+    ensureWeeklyTask().then(task=>{
+      $("#wtBody").innerHTML = `
+        <div class="row wrap">
+          <span class="pill">Theme: <b>${task.theme}</b></span>
+          <span class="pill" id="wtStatus">Status: ${task.status}</span>
+        </div>
+        <div class="block">
+          <div class="small muted">Prompt</div>
+          <div class="well" id="wtPrompt">${task.prompt}</div>
+        </div>
+        <div class="row">
+          <button id="wtSpeak" class="btn">🔊 Read prompt</button>
+          <button id="wtRec" class="btn">⏺️ Record (target 90s)</button>
+          <button id="wtStop" class="btn bad">⏹ Stop</button>
+        </div>
+        <div class="row small"><span class="pill" id="wtTimer">0s</span></div>
+        <textarea id="wtNotes" class="mono" rows="4" placeholder="Write 2–3 phrases summarising your point de vue…"></textarea>
+        <div class="row">
+          <button id="wtSave" class="btn good">✅ Mark complete (+10xp)</button>
+        </div>
+      `;
+
+      let rec=null, stream=null, timer=null, seconds=0;
+      function setStatus(s){ $("#wtStatus").textContent = `Status: ${s}`; }
+      function tick(){ seconds++; $("#wtTimer").textContent = seconds+"s"; }
+
+      $("#wtSpeak").onclick = ()=>{ try{ const u=new SpeechSynthesisUtterance($("#wtPrompt").textContent); u.lang='fr-FR'; speechSynthesis.speak(u);}catch{} };
+      $("#wtRec").onclick = async()=>{
+        try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+        catch{ alert("Microphone blocked. Allow mic access in the address bar."); return; }
+        try{
+          rec = new MediaRecorder(stream);
+          seconds=0; $("#wtTimer").textContent="0s";
+          rec.start(); timer=setInterval(tick,1000);
+          setStatus("recording");
+        }catch{ setStatus("error"); }
+      };
+      $("#wtStop").onclick = ()=>{
+        try{ rec?.stop(); }catch{}
+        try{ stream?.getTracks().forEach(t=>t.stop()); }catch{}
+        clearInterval(timer);
+        setStatus("recorded");
+      };
+      $("#wtSave").onclick = ()=>{
+        const wk = weekStart();
+        const m = store2.get(K2.weekTask,{});
+        m[wk] = m[wk] || {};
+        m[wk].status="completed";
+        m[wk].seconds=seconds;
+        m[wk].notes=$("#wtNotes").value||"";
+        store2.set(K2.weekTask,m);
+
+        // XP + can-do logging
+        const X=xpMap(); X[today()] = (X[today()]||0) + 10; store2.set(K2.xp,X);
+        const A=awMap(); A[today()] = A[today()]||{}; A[today()].comp = (A[today()].comp||0)+1; store2.set(K2.aw,A);
+        logCanDo("mediation:summary"); logCanDo("interaction:opinions");
+
+        alert("Task completed! (+10 xp)");
+        setStatus("completed");
+      };
+    });
+  }
+
+  // ---------- Shadowing (Speaking) ----------
+  async function injectShadowing(){
+    if((document.body.dataset.page||"")!=="speaking") return;
+    const main=$(".container");
+    if(!main || $("#shadowingCard")) return;
+
+    const card=document.createElement("section");
+    card.className="card";
+    card.id="shadowingCard";
+    card.innerHTML = `
+      <h2>Shadowing</h2>
+      <div class="row wrap small">
+        <label>Source&nbsp;
+          <select id="shSource" class="input">
+            <option value="phrases">Phrases du jour</option>
+            <option value="news">Brèves d'actualité</option>
+          </select>
+        </label>
+        <button id="shStart" class="btn">▶️ Start</button>
+        <button id="shStop" class="btn bad">⏹ Stop</button>
+      </div>
+      <div class="small muted">We play a sentence; you overlap and imitate rhythm/pronunciation while we record.</div>
+      <div class="row small"><span class="pill" id="shTimer">0s</span></div>
+    `;
+    main.appendChild(card);
+
+    // load sources
+    const P = await loadJSON("data/phrases.json", ["Bonjour !","Ça marche.","On y va !"]);
+    const N = await loadJSON("data/news_summaries.json", {france:["Actualité du jour."]});
+    function pickNews(){ const all=[...Object.values(N).flat()]; return all.slice(0, 8); }
+
+    let stream=null, rec=null, chunks=[], idx=0, list=[], timer=null, seconds=0, playing=false;
+
+    function speak(text){ try{ const u=new SpeechSynthesisUtterance(text); u.lang='fr-FR'; speechSynthesis.speak(u); }catch{} }
+    function nextUtterance(){
+      if(idx>=list.length){ stopAll(); return; }
+      const t=list[idx++];
+      speak(t);
+      setTimeout(()=>{ if(playing) nextUtterance(); }, Math.max(1200, 400 + t.length*25));
+    }
+    function stopAll(){
+      playing=false;
+      try{ rec?.stop(); }catch{}; try{ stream?.getTracks().forEach(t=>t.stop()); }catch{}
+      clearInterval(timer);
+    }
+
+    $("#shStart").onclick = async()=>{
+      const src = $("#shSource").value;
+      list = (src==="phrases") ? (P.slice(0,10)) : pickNews();
+      idx=0; seconds=0; $("#shTimer").textContent="0s";
+      try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }catch{ alert("Mic blocked."); return; }
+      try{
+        rec=new MediaRecorder(stream); rec.ondataavailable=e=>chunks.push(e.data);
+        rec.start(); timer=setInterval(()=>{ seconds++; $("#shTimer").textContent=seconds+"s"; },1000);
+        playing=true; nextUtterance();
+      }catch{ alert("Recording error."); }
+    };
+    $("#shStop").onclick = stopAll;
+  }
+
+  // ---------- Dictée+ (Listening) ----------
+  async function injectDicteePlus(){
+    if((document.body.dataset.page||"")!=="listening") return;
+    const main=$(".container");
+    if(!main || $("#dicteePlus")) return;
+
+    const data = await loadJSON("data/dictation.json", [{text:"Je suis content d'apprendre le français.", hint:"Phrase simple"}]);
+    const pick = ()=> data[(parseInt(today().replace(/-/g,''),10) % data.length)];
+
+    const card=document.createElement("section");
+    card.className="card";
+    card.id="dicteePlus";
+    card.innerHTML = `
+      <h2>Dictée+ (strict/relaxed)</h2>
+      <div class="row wrap small">
+        <label>Niveau
+          <select id="dpMode" class="input">
+            <option value="strict">Strict (accents comptent)</option>
+            <option value="relaxed" selected>Relaxed (ignorer accents)</option>
+          </select>
+        </label>
+        <button id="dpPlay" class="btn">🔊 Play</button>
+        <button id="dpCheck" class="btn">✅ Check</button>
+      </div>
+      <div class="row small"><span class="pill" id="dpHint">—</span></div>
+      <textarea id="dpInput" class="mono" rows="3" placeholder="Tapez ce que vous entendez…"></textarea>
+      <div class="row small"><span class="pill" id="dpScore">Score: 0%</span></div>
+    `;
+    main.appendChild(card);
+
+    const itm = pick();
+    $("#dpHint").textContent = itm.hint || "—";
+
+    $("#dpPlay").onclick = ()=>{ try{ const u=new SpeechSynthesisUtterance(itm.text); u.lang='fr-FR'; speechSynthesis.speak(u);}catch{} };
+    $("#dpCheck").onclick = ()=>{
+      const relaxed = $("#dpMode").value === "relaxed";
+      const ref = normalizeText(itm.text, relaxed).split(" ");
+      const ans = normalizeText($("#dpInput").value, relaxed).split(" ");
+      const correct = ans.filter(w=> ref.includes(w)).length;
+      const score = Math.round(100 * correct / Math.max(1, ref.length));
+      $("#dpScore").textContent = `Score: ${score}%`;
+      if(score>=60){ 
+        // award listening task xp and can-do
+        const A=awMap(); const d=today(); A[d]=A[d]||{}; A[d].listenTask=(A[d].listenTask||0)+1; store2.set(K2.aw,A);
+        const X=xpMap(); X[d]=(X[d]||0)+5; store2.set(K2.xp,X);
+        logCanDo("listening:main_points");
+        alert("Bien ! (+5 xp)");
+      }
+    };
+  }
+
+  // ---------- Sprint picker (Goals page) ----------
+  async function injectSprintPicker(){
+    if((document.body.dataset.page||"")!=="goals") return;
+    const main=$(".container");
+    if(!main || $("#sprintCard")) return;
+
+    const themes = await loadJSON("data/sprint_themes.json", {themes:["Daily","Travel","Work","News","Opinions"]});
+
+    const card=document.createElement("section");
+    card.className="card";
+    card.id="sprintCard";
+    card.innerHTML = `
+      <h2>One-Week Sprint</h2>
+      <div class="row wrap">
+        <label>Theme
+          <select id="sprintTheme" class="input">
+            ${themes.themes.map(t=>`<option>${t}</option>`).join("")}
+          </select>
+        </label>
+        <button id="sprintSave" class="btn">Save</button>
+        <span id="sprintNow" class="pill">—</span>
+      </div>
+      <p class="muted small">This adjusts your weekly mock task & shadowing source. You can change anytime.</p>
+    `;
+    main.appendChild(card);
+
+    $("#sprintTheme").value = store2.get(K2.sprint, themes.themes[0]);
+    $("#sprintNow").textContent = `Current: ${$("#sprintTheme").value}`;
+    $("#sprintSave").onclick = ()=>{
+      store2.set(K2.sprint, $("#sprintTheme").value);
+      $("#sprintNow").textContent = `Current: ${$("#sprintTheme").value}`;
+      alert("Sprint theme saved.");
+    };
+  }
+
+  // ---------- Keyboard shortcuts (accessibility) ----------
+  function installShortcuts(){
+    const page = document.body.dataset.page||"";
+    document.addEventListener("keydown", (e)=>{
+      if(page==="vocab"){
+        if(e.key==="1") $("#rateAgain")?.click();
+        if(e.key==="2") $("#rateHard")?.click();
+        if(e.key==="3") $("#rateGood")?.click();
+        if(e.key==="4") $("#rateEasy")?.click();
+        if(/^j$/i.test(e.key)) $("#nextCard")?.click();
+      }
+    });
+  }
+
+  // ---------- PWA + Reminders ----------
+  function registerPWA(){
+    try{
+      if(!document.querySelector('link[rel="manifest"]')){
+        const link=document.createElement("link");
+        link.rel="manifest"; link.href="manifest.webmanifest";
+        document.head.appendChild(link);
+      }
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.register('service-worker.js');
+      }
+    }catch{}
+  }
+  function injectReminders(){
+    if((document.body.dataset.page||"")!=="dashboard") return;
+    const card = document.createElement("section");
+    card.className="card";
+    card.innerHTML = `
+      <h2>Reminders</h2>
+      <div class="row wrap">
+        <button id="rqNotify" class="btn">🔔 Enable daily reminder (browser)</button>
+        <span id="notifState" class="pill">—</span>
+      </div>
+      <p class="muted small">Reminders fire only while this site is open. For push while closed, you’d need a server (can add later).</p>
+    `;
+    $(".container").appendChild(card);
+
+    function update(){ $("#notifState").textContent = store2.get(K2.notify,false) ? "On" : "Off"; }
+    update();
+
+    $("#rqNotify").onclick = async()=>{
+      try{
+        const perm = await Notification.requestPermission();
+        if(perm!=="granted"){ alert("Notifications blocked."); return; }
+        store2.set(K2.notify, true); update();
+        // Test notification + simple "next 9:00" reminder while page is open
+        new Notification("Ravi de vous voir 👋", { body:"Je vous rappellerai chaque matin à 9h (tant que la page est ouverte)." });
+        const now=new Date(); const target=new Date(); target.setHours(9,0,0,0);
+        if(target<now) target.setDate(target.getDate()+1);
+        const ms = target-now;
+        setTimeout(()=>{ new Notification("⏰ Prêt pour la séance du jour ?", { body:"Vocab + Listening + Speaking (45 min)" }); }, ms);
+      }catch{ alert("Notification error."); }
+    };
+  }
+
+  // ---------- Boot ----------
+  function bootDeep(){
+    registerPWA();
+    installShortcuts();
+    injectAnalytics();
+    injectCanDoPanel();
+    injectWeeklyTask();
+    injectShadowing();
+    injectDicteePlus();
+    injectSprintPicker();
+    injectReminders();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bootDeep);
+  else bootDeep();
+})();
