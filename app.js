@@ -1664,10 +1664,10 @@ out_path
     container.insertBefore(card, container.children[2]||null);
 
     function row(ok,label,detail=""){
-      return `<div class="row wrap small">
-        <span class="pill ${ok?'ok':''}">${ok?'✅ Met':'⏳ Not yet'}</span>
-        <span class="muted">${label}${detail?` — <b>${detail}</b>`:""}</span>
-      </div>`;
+      return '<div class="row wrap small">'
+     + '<span class="pill ' + (ok ? 'ok' : '') + '">' + (ok ? '✅ Met' : '⏳ Not yet') + '</span>'
+     + '<span class="muted">' + label + (detail ? ' — <b>' + detail + '</b>' : '') + '</span>'
+     + '</div>';
     }
 
     function render(){
