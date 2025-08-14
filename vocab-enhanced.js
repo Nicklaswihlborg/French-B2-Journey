@@ -1,5 +1,3 @@
-<script src="app.js" defer></script>
-<script src="vocab-enhanced.js" defer></script>
 /* Vocabulary Enhancer — fixes bad translations, smarter conjugations, varied examples
    - Non-destructive: runs on top of your existing app.js
    - Adds “Clean & Fix Deck” button
