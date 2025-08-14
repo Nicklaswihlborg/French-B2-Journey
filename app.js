@@ -57,11 +57,29 @@
   function deck(){return store.get(K.vocab,[])} function saveDeck(d){store.set(K.vocab,d)}
   function addCard(fr,en){const id=Date.now()+Math.random(); const c={id,fr,en,ease:2.5,interval:0,reps:0,leech:0,due:fmt(today())}; saveDeck([...deck(),c]);}
   function dueCount(){const t=today(); return deck().filter(w=>w.due<=t).length}
-  function srsRate(card,grade){
-    if(grade<3){card.reps=0; card.interval=1; card.ease=Math.max(1.3,(card.ease||2.5)-0.2); card.leech=(card.leech||0)+1;}
-    else{card.reps=(card.reps||0)+1; if(card.reps===1) card.interval=1; else if(card.reps===2) card.interval=3; else card.interval=Math.round((card.interval||1)*(card.ease||2.5)); card.ease=Math.min(3.2,(card.ease||2.5)+(grade===4?0.15:0));}
-    card.due=fmt(addDays(new Date(),card.interval||1));
+ function srsRate(card, grade){
+  // SM-2 style + leech tracking
+  if(grade < 3){
+    card.reps = 0;
+    card.interval = 1;
+    card.ease = Math.max(1.3, (card.ease||2.5) - 0.2);
+    card.leech = (card.leech||0) + 1;
+  } else {
+    card.reps = (card.reps||0) + 1;
+    if(card.reps === 1) card.interval = 1;
+    else if(card.reps === 2) card.interval = 3;
+    else card.interval = Math.round((card.interval||3) * (card.ease||2.5));
+    card.ease = Math.min(3.2, (card.ease||2.5) + (grade===4?0.15:0));
+    card.leech = Math.max(0, (card.leech||0) - 1);
   }
+  // Leech threshold: flag and cap interval to keep it visible
+  if((card.leech||0) >= 8){
+    card.tag = "leech";
+    card.interval = Math.min(card.interval||1, 2);
+  }
+  card.due = fmt(addDays(new Date(), card.interval||1));
+}
+
   async function maybeSeedVocab(){
     if(deck().length) return;
     const fb={pairs:["bonjour|hello","merci|thank you"]};
