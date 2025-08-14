@@ -450,341 +450,391 @@
 
 
 // ======================================================================
-// Dashboard, Goals, Phrases, Speaking, Calendar, Data — Quick Wins
+// Dashboard, Goals, Phrases, Speaking, Calendar, Data — Quick Wins (SAFE)
 // ======================================================================
-(function(){
-  const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-  const $=(s,r=document)=>r.querySelector(s);
-  const today=()=>new Date().toISOString().slice(0,10);
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+(function () {
+  // ---------- tiny utils ----------
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.from((r || document).querySelectorAll(s)); }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-  // Keys (extend existing K if present)
-  const K2 = (typeof K!=='undefined') ? K : {};
+  // ---------- storage + keys ----------
+  var K2 = (typeof K !== 'undefined') ? K : {};
+  K2.xp = K2.xp || 'fj_xp_by_day';
+  K2.aw = K2.aw || 'fj_awards_by_day';
+  K2.goal = K2.goal || 'fj_goal_xp';
+  K2.b2 = K2.b2 || 'fj_b2_target';
+  K2.listenProg = K2.listenProg || 'fj_listen_prog';
   K2.speakProg = K2.speakProg || 'fj_speak_prog';
-  K2.phrDone   = K2.phrDone   || 'fj_phr_done';
 
-  // Safe store wrapper (use existing store if defined)
-  const store2 = (typeof store!=='undefined') ? store : {
-    get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},
-    set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+  var store2 = (typeof store !== 'undefined') ? store : {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
 
-  // Helpers to read existing maps
-  const xpMap = ()=> store2.get(K2.xp,{});
-  const awMap = ()=> store2.get(K2.aw,{});
-  const goalXP= ()=> Number(store2.get(K2.goal,30));
-  const setGoalXP=v=> store2.set(K2.goal, Number(v)||30);
-  const b2Date = ()=> store2.get(K2.b2, new Date(new Date().getFullYear(),11,31).toISOString().slice(0,10));
+  function xpMap() { return store2.get(K2.xp, {}); }
+  function awMap() { return store2.get(K2.aw, {}); }
+  function goalXP() { return Number(store2.get(K2.goal, 30)); }
+  function setGoalXP(v) { store2.set(K2.goal, Number(v) || 30); }
+  function b2Date() { return store2.get(K2.b2, new Date(new Date().getFullYear(), 11, 31).toISOString().slice(0, 10)); }
 
-  // Compute last N day series
-  function lastNDays(n){
-    const out=[]; const m=xpMap();
-    for(let i=n-1;i>=0;i--){
-      const d=new Date(); d.setDate(d.getDate()-i);
-      const key=d.toISOString().slice(0,10);
-      out.push({d:key, xp: m[key]||0});
+  // ---------- helpers ----------
+  function lastNDays(n) {
+    var out = [], m = xpMap(), i, d, key;
+    for (i = n - 1; i >= 0; i--) {
+      d = new Date(); d.setDate(d.getDate() - i);
+      key = d.toISOString().slice(0, 10);
+      out.push({ d: key, xp: m[key] || 0 });
     }
     return out;
   }
-
-  // Compute streak based on meeting goalXP
-  function calcStreak(){
-    const g=goalXP();
-    let streak=0;
-    for(let i=0;i<365;i++){
-      const d=new Date(); d.setDate(d.getDate()-i);
-      const key=d.toISOString().slice(0,10);
-      const v=xpMap()[key]||0;
-      if(v>=g) streak++; else break;
+  function calcStreak() {
+    var g = goalXP(), i, d, key, v, streak = 0;
+    for (i = 0; i < 365; i++) {
+      d = new Date(); d.setDate(d.getDate() - i);
+      key = d.toISOString().slice(0, 10);
+      v = xpMap()[key] || 0;
+      if (v >= g) streak++; else break;
     }
     return streak;
   }
-
-  // Map tags to coarse skill buckets
-  const TAG2SKILL = {
-    vocab: ['vocab','vocabSession'],
-    comp:  ['comp','mcq','cloze','sa','tf'],
-    listen:['listen','listenTask'],
-    speak: ['speak','speak60'],
-    phr:   ['phrases','phrSet']
+  var TAG2SKILL = {
+    vocab: ['vocab', 'vocabSession'],
+    comp: ['comp', 'mcq', 'cloze', 'sa', 'tf'],
+    listen: ['listen', 'listenTask'],
+    speak: ['speak', 'speak60'],
+    phr: ['phrases', 'phrSet']
   };
-
-  // Derive skill xp for today (with caps for UI %)
-  function skillBreakdown(){
-    const caps = {vocab:10, comp:10, speak:15, listen:15, phr:5};
-    const perTagXP = {}; // accumulate by tag via awards * 5 (default amount)
-    const a = awMap()[today()] || {};
-    // NOTE: award() in app.js uses +amount (default 5). We approximate with +5 here.
-    const TAG_AMOUNT = 5;
-    for(const [tag,count] of Object.entries(a)){
-      perTagXP[tag] = (perTagXP[tag]||0) + (Number(count)||0)*TAG_AMOUNT;
+  function skillBreakdown() {
+    var caps = { vocab: 10, comp: 10, speak: 15, listen: 15, phr: 5 };
+    var perTagXP = {}, a = awMap()[today()] || {}, tag, count;
+    var TAG_AMOUNT = 5; // awards default to +5 xp each in app core
+    for (tag in a) {
+      count = Number(a[tag]) || 0;
+      perTagXP[tag] = (perTagXP[tag] || 0) + count * TAG_AMOUNT;
     }
-    const skills = {};
-    for(const [skill,tags] of Object.entries(TAG2SKILL)){
-      const raw = tags.reduce((s,t)=>s+(perTagXP[t]||0),0);
-      const cap = caps[skill];
-      skills[skill] = {raw, cap, pct: clamp(Math.round(100* Math.min(raw,cap)/cap), 0, 100)};
+    var skills = {}, skill, tags, i, raw, cap;
+    for (skill in TAG2SKILL) {
+      tags = TAG2SKILL[skill]; raw = 0;
+      for (i = 0; i < tags.length; i++) raw += (perTagXP[tags[i]] || 0);
+      cap = caps[skill];
+      skills[skill] = { raw: raw, cap: cap, pct: clamp(Math.round(100 * Math.min(raw, cap) / cap), 0, 100) };
     }
     return skills;
   }
 
-  // Draw a simple ring on canvas
-  function drawRing(canvas, pct){
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    const cx=W/2, cy=H/2, r=Math.min(W,H)/2 - 8;
-    ctx.clearRect(0,0,W,H);
-    // bg
-    ctx.lineWidth=12; ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--ringbg')||'#0d1830';
-    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
-    // fg
-    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--ring')||'#72b0ff';
-    const a = Math.PI*1.5, span = Math.PI*2*(pct/100);
-    ctx.beginPath(); ctx.arc(cx,cy,r,a,a+span); ctx.stroke();
+  // ---------- tiny canvas charts ----------
+  function drawRing(canvas, pct) {
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+    var cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 8;
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ringbg') || '#0d1830';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ring') || '#72b0ff';
+    var a = Math.PI * 1.5, span = Math.PI * 2 * (pct / 100);
+    ctx.beginPath(); ctx.arc(cx, cy, r, a, a + span); ctx.stroke();
+  }
+  function drawChart14(canvas, series) {
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    var pad = 16, n = series.length, barW = (W - 2 * pad) / n - 4;
+    var i, d, x, h, max = 1;
+    for (i = 0; i < n; i++) if (series[i].xp > max) max = series[i].xp;
+    for (i = 0; i < n; i++) {
+      d = series[i]; x = pad + i * ((W - 2 * pad) / n);
+      h = Math.round((H - 24) * d.xp / max);
+      ctx.fillRect(x, H - 8 - h, barW, h);
+    }
   }
 
-  // Mini bar chart for last 14 days
-  function drawChart14(canvas, series){
-    if(!canvas) return;
-    const ctx=canvas.getContext('2d');
-    const W=canvas.width, H=canvas.height;
-    ctx.clearRect(0,0,W,H);
-    const pad=16, n=series.length;
-    const barW=(W-2*pad)/n - 4;
-    const max=Math.max(1, ...series.map(d=>d.xp));
-    series.forEach((d,i)=>{
-      const x=pad + i*((W-2*pad)/n);
-      const h = Math.round((H-24) * d.xp/max);
-      ctx.fillRect(x, H-8-h, barW, h);
-    });
-  }
+  // ---------- Dashboard ----------
+  function initDashboard() {
+    if ((document.body.dataset.page || '') !== 'dashboard') return;
 
-  // Dashboard init
-  function initDashboard(){
-    if((document.body.dataset.page||'')!=='dashboard') return;
     // Save status
-    const persistOK = (typeof store!=='undefined') ? store.isPersistent?.() : (()=> {try{localStorage.setItem('__t','1');localStorage.removeItem('__t');return true}catch{return false}})();
-    const s=$('#saveStatus'); if(s) s.textContent = persistOK ? 'Local save: OK' : 'Local save: memory-only (backup often)';
+    var persistOK = (typeof store !== 'undefined' && typeof store.isPersistent === 'function')
+      ? store.isPersistent() : (function () { try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); return true; } catch (e) { return false; } })();
+    var s = $('#saveStatus');
+    if (s) s.textContent = persistOK ? 'Local save: OK' : 'Local save: memory-only (backup often)';
+
     // Streak + countdown
-    const streak = calcStreak();
-    $('#streakBadge') && ($('#streakBadge').textContent = `🔥 Streak: ${streak}`);
-    const target = new Date(b2Date());
-    const diffDays = Math.max(0, Math.ceil((target - new Date())/86400000));
-    $('#countdownBadge') && ($('#countdownBadge').textContent = `📅 ${diffDays} days to B2`);
+    var streak = calcStreak();
+    var sb = $('#streakBadge'); if (sb) sb.textContent = ' Streak: ' + streak;
+    var target = new Date(b2Date());
+    var diffDays = Math.max(0, Math.ceil((target - new Date()) / 86400000));
+    var cb = $('#countdownBadge'); if (cb) cb.textContent = ' ' + diffDays + ' days to B2';
+
     // XP + ring
-    const g=goalXP(); const todayXP = xpMap()[today()]||0;
-    $('#goalVal') && ($('#goalVal').textContent = g);
-    $('#xpLabel') && ($('#xpLabel').textContent = `${todayXP}/${g}`);
-    $('#xpBar') && ($('#xpBar').style.width = `${clamp(Math.round(100*Math.min(todayXP,g)/g),0,100)}%`);
-    drawRing($('#ring'), clamp(Math.round(100*Math.min(todayXP,g)/g),0,100));
+    var g = goalXP(), todayXP = xpMap()[today()] || 0, pct = clamp(Math.round(100 * Math.min(todayXP, g) / g), 0, 100);
+    var gv = $('#goalVal'); if (gv) gv.textContent = g;
+    var xl = $('#xpLabel'); if (xl) xl.textContent = todayXP + '/' + g;
+    var xb = $('#xpBar'); if (xb) xb.style.width = pct + '%';
+    drawRing($('#ring'), pct);
+
     // Weekly + last 14
-    const last7 = lastNDays(7).reduce((s,d)=>s+d.xp,0);
-    $('#wkXp') && ($('#wkXp').textContent = last7);
-    const series14 = lastNDays(14);
-    drawChart14($('#chart14'), series14);
-    $('#sum14') && ($('#sum14').textContent = series14.reduce((s,d)=>s+d.xp,0));
-    // Checklist
-    const skills = skillBreakdown();
-    // mark done if skill reached its cap
-    const doneVocab = skills.vocab.raw >= skills.vocab.cap;
-    const doneComp  = skills.comp.raw  >= skills.comp.cap;
-    const doneSpeak = skills.speak.raw >= 10; // 60s target -> ~10xp threshold
-    const doneListen= skills.listen.raw>= 10;
-    const donePhr   = skills.phr.raw   >= skills.phr.cap;
-    $('#chk-vocab') && ($('#chk-vocab').classList.toggle('done',doneVocab));
-    $('#chk-comp')  && ($('#chk-comp').classList.toggle('done',doneComp));
-    $('#chk-speak') && ($('#chk-speak').classList.toggle('done',doneSpeak));
-    $('#chk-listen')&& ($('#chk-listen').classList.toggle('done',doneListen));
-    $('#chk-phr')   && ($('#chk-phr').classList.toggle('done',donePhr));
-    // Next action heuristic
-    const next = (function(){
-      if(!doneVocab)  return {href:'vocabulary.html?daily=1', label:'Review 10 vocab (due)'};
-      const lp = store2.get(K2.listenProg,{})[today()]||{};
-      if((lp.done||0) < 3) return {href:'listening.html?daily=1', label:'Finish 3 listening items'};
-      const sp = store2.get(K2.speakProg,{})[today()]||{seconds:0};
-      if((sp.seconds||0) < 60) return {href:'speaking.html', label:'Speak for 60 seconds'};
-      if(!doneComp)   return {href:'comprehension.html', label:'Do 5–7 comprehension items'};
-      if(!donePhr)    return {href:'phrases.html', label:'Daily phrases set'};
-      return {href:'goals.html', label:'Stretch goal or rest'};
-    })();
-    if($('#nextAction')) $('#nextAction').innerHTML = `<a class="btn" href="${next.href}">${next.label}</a>`;
+    var last7 = lastNDays(7).reduce(function (s, d) { return s + d.xp; }, 0);
+    var wk = $('#wkXp'); if (wk) wk.textContent = last7;
+    var s14 = lastNDays(14);
+    drawChart14($('#chart14'), s14);
+    var sum14 = $('#sum14'); if (sum14) sum14.textContent = s14.reduce(function (s, d) { return s + d.xp; }, 0);
+
+    // Checklist (done/not done)
+    var skills = skillBreakdown();
+    var doneVocab = skills.vocab.raw >= skills.vocab.cap;
+    var doneComp = skills.comp.raw >= skills.comp.cap;
+    var doneSpeak = skills.speak.raw >= 10;     // ~60s target
+    var doneListen = skills.listen.raw >= 10;   // ~10 xp threshold
+    var donePhr = skills.phr.raw >= skills.phr.cap;
+    var el;
+    el = $('#chk-vocab'); if (el) el.classList.toggle('done', doneVocab);
+    el = $('#chk-comp'); if (el) el.classList.toggle('done', doneComp);
+    el = $('#chk-speak'); if (el) el.classList.toggle('done', doneSpeak);
+    el = $('#chk-listen'); if (el) el.classList.toggle('done', doneListen);
+    el = $('#chk-phr'); if (el) el.classList.toggle('done', donePhr);
+
+    // Next action
+    var next;
+    if (!doneVocab) next = { href: 'vocabulary.html?daily=1', label: 'Review 10 vocab (due)' };
+    else {
+      var lp = store2.get(K2.listenProg, {})[today()] || {};
+      if ((lp.done || 0) < 3) next = { href: 'listening.html?daily=1', label: 'Finish 3 listening items' };
+      else {
+        var sp = store2.get(K2.speakProg, {})[today()] || { seconds: 0 };
+        if ((sp.seconds || 0) < 60) next = { href: 'speaking.html', label: 'Speak for 60 seconds' };
+        else if (!doneComp) next = { href: 'comprehension.html', label: 'Do 5–7 comprehension items' };
+        else if (!donePhr) next = { href: 'phrases.html', label: 'Daily phrases set' };
+        else next = { href: 'goals.html', label: 'Stretch goal or rest' };
+      }
+    }
+    var na = $('#nextAction');
+    if (na) na.innerHTML = '<a class="btn" href="' + next.href + '">' + next.label + '</a>';
   }
 
-  // Goals page init
-  function initGoals(){
-    if((document.body.dataset.page||'')!=='goals') return;
-    const dailyMinutes = $('#dailyMinutes');
-    const weeklyHours  = $('#weeklyHours');
-    const dailyXP      = $('#dailyXP');
-    const saveDailyXP  = $('#saveDailyXP');
-    const b2Target     = $('#b2Target');
-    const b2Countdown  = $('#b2Countdown');
-    // Defaults
-    if(dailyMinutes) dailyMinutes.value = dailyMinutes.value || 45;
-    if(weeklyHours)  weeklyHours.value  = weeklyHours.value || 7;
-    if(dailyXP)      dailyXP.value      = store2.get(K2.goal,30);
-    if(b2Target)     b2Target.value     = b2Date();
-    const updateCD = ()=>{
-      const diffDays = Math.max(0, Math.ceil((new Date(b2Target.value) - new Date())/86400000));
-      if(b2Countdown) b2Countdown.textContent = `${diffDays} days left`;
-    };
+  // ---------- Goals ----------
+  function initGoals() {
+    if ((document.body.dataset.page || '') !== 'goals') return;
+    var dailyMinutes = $('#dailyMinutes');
+    var weeklyHours = $('#weeklyHours');
+    var dailyXP = $('#dailyXP');
+    var saveDailyXP = $('#saveDailyXP');
+    var b2Target = $('#b2Target');
+    var b2Countdown = $('#b2Countdown');
+
+    if (dailyMinutes) dailyMinutes.value = dailyMinutes.value || 45;
+    if (weeklyHours) weeklyHours.value = weeklyHours.value || 7;
+    if (dailyXP) dailyXP.value = store2.get(K2.goal, 30);
+    if (b2Target) b2Target.value = b2Date();
+    function updateCD() {
+      var diffDays = Math.max(0, Math.ceil((new Date(b2Target.value) - new Date()) / 86400000));
+      if (b2Countdown) b2Countdown.textContent = diffDays + ' days left';
+    }
     updateCD();
-    b2Target && b2Target.addEventListener('change',()=>{ store2.set(K2.b2, b2Target.value); updateCD(); });
-    saveDailyXP && saveDailyXP.addEventListener('click', ()=>{
-      if(dailyXP) { setGoalXP(Number(dailyXP.value||30)); alert('Daily XP saved'); }
+    if (b2Target) b2Target.addEventListener('change', function () { store2.set(K2.b2, b2Target.value); updateCD(); });
+    if (saveDailyXP) saveDailyXP.addEventListener('click', function () {
+      if (dailyXP) { setGoalXP(Number(dailyXP.value || 30)); alert('Daily XP saved'); }
     });
   }
 
-  // Phrases page init
-  async function initPhrases(){
-    if((document.body.dataset.page||'')!=='phrases') return;
-    const listEl = $('#phraseList');
-    const refresh = $('#refreshPhrases');
-    const speakAll = $('#speakAllPhrases');
-    const stopAll = $('#stopAllPhrases');
-    const resp = await fetch('data/phrases.json').catch(()=>null);
-    let phrases = [];
-    try{ phrases = await resp.json(); }catch{ phrases = []; }
-    if(!Array.isArray(phrases) || phrases.length===0){ phrases = ["Bonjour !","Ça marche.","On y va !","Pas de souci.","À mon avis…","Je suis d’accord.","Par contre…","Cependant…"]; }
-    const SET_SIZE = 10;
-    function pickToday(){
-      const seed = parseInt(today().replace(/-/g,''),10);
-      const out=[];
-      for(let i=0;i<SET_SIZE;i++){
-        const idx = (seed + i*37) % phrases.length;
+  // ---------- Phrases (safe, no template strings) ----------
+  function initPhrases() {
+    if ((document.body.dataset.page || '') !== 'phrases') return;
+
+    var listEl = $('#phraseList');
+    var refresh = $('#refreshPhrases');
+    var speakAll = $('#speakAllPhrases');
+    var stopAll = $('#stopAllPhrases');
+
+    var phrases = [];
+    fetch('data/phrases.json').then(function (r) { return r.json(); })
+      .then(function (j) { phrases = Array.isArray(j) ? j : []; })
+      .catch(function () { phrases = []; })
+      .finally(function () {
+        if (phrases.length === 0) {
+          phrases = ['Bonjour !', 'Ça marche.', 'On y va !', 'Pas de souci.', 'À mon avis…', 'Je suis d’accord.', 'Par contre…', 'Cependant…'];
+        }
+        bootSet();
+      });
+
+    var current = [];
+    function pickToday() {
+      var seed = parseInt(today().replace(/-/g, ''), 10) || 1;
+      var i, out = [], n = phrases.length, idx;
+      if (n === 0) return [];
+      for (i = 0; i < 10; i++) {
+        idx = (seed + i * 37) % n;
         out.push(phrases[idx]);
       }
       return out;
     }
-    let current = pickToday();
-    function render(){
-      listEl.innerHTML = current.map((p,i)=>`<div class="row"><span class="pill small">${i+1}</span><span>${p}</span></div>`).join('');
+    function render() {
+      if (!listEl) return;
+      var html = '', i;
+      for (i = 0; i < current.length; i++) {
+        html += '<div class="row"><span class="pill small">' + (i + 1) + '</span><span>' + current[i] + '</span></div>';
+      }
+      listEl.innerHTML = html;
     }
-    function awardOnce(){
-      // one award per day for phrases
-      const a = store2.get(K2.aw,{});
-      const d = today();
+    function awardOnce() {
+      var a = store2.get(K2.aw, {}), d = today();
       a[d] = a[d] || {};
-      a[d]['phrSet'] = Math.min(1, (a[d]['phrSet']||0) + 1);
-      store2.set(K2.aw,a);
-      // also bump xp by 10
-      const xm = store2.get(K2.xp,{}); xm[d] = (xm[d]||0) + 10; store2.set(K2.xp,xm);
+      a[d]['phrSet'] = Math.min(1, (a[d]['phrSet'] || 0) + 1);
+      store2.set(K2.aw, a);
+      var xm = store2.get(K2.xp, {}); xm[d] = (xm[d] || 0) + 10; store2.set(K2.xp, xm);
       alert('Phrases set complete! +10 xp');
     }
-    render();
-    refresh && refresh.addEventListener('click', ()=>{ current = pickToday(); render(); });
-    let playing=false;
-    function speakQueue(){
-      if(playing) return;
-      playing=true;
-      let i=0;
-      const next=()=>{
-        if(i>=current.length){ playing=false; awardOnce(); return; }
-        try{
-          const u = new SpeechSynthesisUtterance(current[i]); u.lang='fr-FR'; speechSynthesis.speak(u);
-          u.onend=()=>{ i++; setTimeout(next, 400); };
-        }catch{ i++; setTimeout(next, 200); }
-      };
+
+    var playing = false, speakTimer = 0;
+    function speakQueue() {
+      if (playing) return;
+      playing = true;
+      var i = 0;
+      function next() {
+        if (i >= current.length) { playing = false; awardOnce(); return; }
+        try {
+          var u = new SpeechSynthesisUtterance(current[i]);
+          u.lang = 'fr-FR';
+          speechSynthesis.speak(u);
+          u.onend = function () { i++; speakTimer = setTimeout(next, 400); };
+        } catch (e) { i++; speakTimer = setTimeout(next, 200); }
+      }
       next();
     }
-    function stopQueue(){ try{speechSynthesis.cancel();}catch{} playing=false; }
-    speakAll && speakAll.addEventListener('click', speakQueue);
-    stopAll && stopAll.addEventListener('click', stopQueue);
+    function stopQueue() {
+      try { speechSynthesis.cancel(); } catch (e) {}
+      playing = false;
+      if (speakTimer) clearTimeout(speakTimer);
+    }
+
+    function bootSet() {
+      current = pickToday();
+      render();
+      if (refresh) refresh.addEventListener('click', function () { current = pickToday(); render(); });
+      if (speakAll) speakAll.addEventListener('click', speakQueue);
+      if (stopAll) stopAll.addEventListener('click', stopQueue);
+    }
   }
 
-  // Speaking page init
-  function initSpeaking(){
-    if((document.body.dataset.page||'')!=='speaking') return;
-    const askBtn = $('#askMic'), startBtn=$('#startRec'), stopBtn=$('#stopRec');
-    const micState=$('#micState'), recState=$('#recState'), out=$('#speechOut');
-    const promptBtn=$('#speakPrompt');
-    let stream=null, rec=null, chunks=[], timer=null, seconds=0;
-    function updateMic(s){ if(micState) micState.textContent = `🎙️ Micro: ${s}`; }
-    function updateRec(s){ if(recState) recState.textContent = `🗣️ State: ${s}`; }
-    function tick(){ seconds++; updateRec(`recording ${seconds}s`); const P=store2.get(K2.speakProg,{}); const d=today(); P[d]=P[d]||{seconds:0}; P[d].seconds=seconds; store2.set(K2.speakProg,P);
-      if(seconds===60){ // award once when reaching 60s
-        const a=store2.get(K2.aw,{}); a[today()]=a[today()]||{}; a[today()].speak60 = Math.min(1,(a[today()].speak60||0)+1); store2.set(K2.aw,a);
-        const xm = store2.get(K2.xp,{}); xm[today()] = (xm[today()]||0) + 10; store2.set(K2.xp,xm);
-      }}
-    askBtn && askBtn.addEventListener('click', async()=>{
-      try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); updateMic('ready'); }
-      catch(e){ updateMic('blocked'); alert('Microphone permission is blocked. Click the camera icon in your address bar to allow.'); }
+  // ---------- Speaking ----------
+  function initSpeaking() {
+    if ((document.body.dataset.page || '') !== 'speaking') return;
+
+    var askBtn = $('#askMic'), startBtn = $('#startRec'), stopBtn = $('#stopRec');
+    var micState = $('#micState'), recState = $('#recState'), out = $('#speechOut');
+    var promptBtn = $('#speakPrompt');
+
+    var stream = null, rec = null, chunks = [], timer = 0, seconds = 0;
+
+    function updateMic(s) { if (micState) micState.textContent = '️ Micro: ' + s; }
+    function updateRec(s) { if (recState) recState.textContent = '️ State: ' + s; }
+
+    function tick() {
+      seconds++;
+      updateRec('recording ' + seconds + 's');
+      var P = store2.get(K2.speakProg, {}), d = today();
+      P[d] = P[d] || { seconds: 0 };
+      P[d].seconds = seconds; store2.set(K2.speakProg, P);
+      if (seconds === 60) {
+        var a = store2.get(K2.aw, {}); a[d] = a[d] || {}; a[d].speak60 = Math.min(1, (a[d].speak60 || 0) + 1);
+        store2.set(K2.aw, a);
+        var xm = store2.get(K2.xp, {}); xm[d] = (xm[d] || 0) + 10; store2.set(K2.xp, xm);
+      }
+    }
+
+    if (askBtn) askBtn.addEventListener('click', function () {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
+        stream = st; updateMic('ready');
+      }).catch(function () { updateMic('blocked'); alert('Microphone permission is blocked.\nClick the camera icon in your address bar to allow.'); });
     });
-    startBtn && startBtn.addEventListener('click', ()=>{
-      if(!stream){ alert('Click “Ask for mic access” first.'); return; }
-      try{
-        chunks=[]; rec=new MediaRecorder(stream); rec.ondataavailable=e=>chunks.push(e.data);
-        rec.onstop=()=>{ const blob=new Blob(chunks,{type:'audio/webm'}); // we keep in memory only
-                         // transcript stub (future ASR): show a note
-                         if(out) out.value = (out.value||'') + `\\n[${new Date().toLocaleTimeString()}] Recorded ${seconds}s`;
-                       };
-        rec.start(); seconds=0; updateRec('recording 0s'); timer=setInterval(tick,1000);
-      }catch(e){ updateRec('error'); }
+
+    if (startBtn) startBtn.addEventListener('click', function () {
+      if (!stream) { alert('Click "Ask for mic access" first.'); return; }
+      try {
+        chunks = []; rec = new MediaRecorder(stream);
+        rec.ondataavailable = function (e) { chunks.push(e.data); };
+        rec.onstop = function () {
+          try { var blob = new Blob(chunks, { type: 'audio/webm' }); void blob; } catch (e) {}
+          if (out) out.value = (out.value || '') + '\n[' + new Date().toLocaleTimeString() + '] Recorded ' + seconds + 's';
+        };
+        rec.start(); seconds = 0; updateRec('recording 0s'); timer = setInterval(tick, 1000);
+      } catch (e) { updateRec('error'); }
     });
-    stopBtn && stopBtn.addEventListener('click', ()=>{
-      try{ rec?.stop(); }catch{}; try{ stream.getTracks().forEach(t=>t.stop()); }catch{}; clearInterval(timer); updateRec('stopped');
+
+    if (stopBtn) stopBtn.addEventListener('click', function () {
+      try { rec && rec.stop(); } catch (e) {}
+      try { stream && stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      clearInterval(timer); updateRec('stopped');
     });
-    promptBtn && promptBtn.addEventListener('click', ()=>{
-      const text = ($('#promptBox')?.textContent||'Parlez pendant 60 secondes sur votre journée.');
-      try{ const u=new SpeechSynthesisUtterance(text); u.lang='fr-FR'; speechSynthesis.speak(u);}catch{}
-    });
-    $('#markSpeakXP') && $('#markSpeakXP').addEventListener('click', ()=>{
-      const a=store2.get(K2.aw,{}); const d=today(); a[d]=a[d]||{}; a[d].speak = (a[d].speak||0)+1; store2.set(K2.aw,a);
-      const xm=store2.get(K2.xp,{}); xm[d]=(xm[d]||0)+5; store2.set(K2.xp,xm);
-      alert('+5 xp');
+
+    if (promptBtn) promptBtn.addEventListener('click', function () {
+      var text = ($('#promptBox') ? $('#promptBox').textContent : 'Parlez pendant 60 secondes sur votre journée.');
+      try { var u = new SpeechSynthesisUtterance(text); u.lang = 'fr-FR'; speechSynthesis.speak(u); } catch (e) {}
     });
   }
 
-  // Calendar page init
-  function initCalendar(){
-    if((document.body.dataset.page||'')!=='calendar') return;
-    const cont = $('#calendarContainer'); if(!cont) return;
-    cont.innerHTML='';
-    const now=new Date(); const y=now.getFullYear(), m=now.getMonth();
-    function renderMonth(year, month){
-      const first=new Date(year,month,1); const startDay=(first.getDay()+6)%7; // Monday=0
-      const days=new Date(year,month+1,0).getDate();
-      const g=goalXP(); const xp=xpMap();
-      const wrap=document.createElement('div');
-      wrap.innerHTML = `<div class="calMonth">${first.toLocaleString(undefined,{month:'long', year:'numeric'})}</div>`;
-      const grid=document.createElement('div'); grid.className='calGrid';
-      // week headers
-      ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{ const h=document.createElement('div'); h.className='calCell small muted'; h.textContent=d; grid.appendChild(h);});
-      for(let i=0;i<startDay;i++){ const e=document.createElement('div'); e.className='calCell future'; e.textContent=''; grid.appendChild(e); }
-      for(let d=1; d<=days; d++){
-        const key=new Date(year,month,d).toISOString().slice(0,10);
-        const e=document.createElement('div'); e.className='calCell'; e.textContent=String(d);
-        const val = xp[key]||0;
-        if(new Date(key).toDateString() === new Date().toDateString()) e.classList.add('today');
-        if(val>=g) e.classList.add('done');
+  // ---------- Calendar (simple month with goal shading) ----------
+  function initCalendar() {
+    if ((document.body.dataset.page || '') !== 'calendar') return;
+    var cont = $('#calendarContainer'); if (!cont) return;
+    cont.innerHTML = '';
+
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth();
+
+    function renderMonth(year, month) {
+      var first = new Date(year, month, 1);
+      var startDay = (first.getDay() + 6) % 7; // Monday=0
+      var days = new Date(year, month + 1, 0).getDate();
+      var g = goalXP();
+      var xp = xpMap();
+
+      var wrap = document.createElement('div');
+
+      var h2 = document.createElement('h2');
+      h2.textContent = first.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      wrap.appendChild(h2);
+
+      var grid = document.createElement('div');
+      grid.className = 'calGrid';
+
+      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) {
+        var hd = document.createElement('div');
+        hd.className = 'calCell small muted';
+        hd.textContent = d;
+        grid.appendChild(hd);
+      });
+
+      var i, e, d;
+      for (i = 0; i < startDay; i++) { e = document.createElement('div'); e.className = 'calCell muted'; e.textContent = ''; grid.appendChild(e); }
+      for (i = 1; i <= days; i++) {
+        d = new Date(year, month, i).toISOString().slice(0, 10);
+        e = document.createElement('div');
+        e.className = 'calCell';
+        e.textContent = String(i);
+        if ((xp[d] || 0) >= g) e.classList.add('done');
         grid.appendChild(e);
       }
-      wrap.appendChild(grid); cont.appendChild(wrap);
+
+      wrap.appendChild(grid);
+      cont.appendChild(wrap);
     }
-    renderMonth(y,m);
+
+    renderMonth(y, m);
   }
 
-  // Data page — nothing extra here; backup banner handled on dashboard
-
-  // Wire auto-start parameters
-  function installParamHooks(){
-    const url = new URL(location.href);
-    const daily = url.searchParams.get('daily')==='1';
-    const page = document.body.dataset.page||'';
-    if(page==='vocab' && daily){
-      // auto-click start review if present
-      document.querySelector('#startQuiz')?.click?.();
-    }
-    if(page==='listening' && daily){
-      // ensure Daily tab visible (pane-daily exists)
-      document.querySelector('[data-t="daily"]')?.click?.();
-      // renderDaily runs on load already
-    }
+  // ---------- small URL hooks ----------
+  function installParamHooks() {
+    var url = new URL(location.href);
+    var daily = url.searchParams.get('daily') === '1';
+    var page = document.body.dataset.page || '';
+    if (page === 'vocab' && daily) { var b = document.querySelector('#startQuiz'); if (b && b.click) b.click(); }
+    if (page === 'listening' && daily) { var t = document.querySelector('[data-t="daily"]'); if (t && t.click) t.click(); }
   }
 
-  // Boot for this add-on
-  function boot2(){
+  // ---------- boot ----------
+  function boot2() {
     initDashboard();
     initGoals();
     initPhrases();
@@ -792,8 +842,10 @@
     initCalendar();
     installParamHooks();
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot2); else boot2();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot2);
+  else boot2();
 })();
+
 /* =========================
    Deeper Improvements Module
    (append-only; no breaking changes)
