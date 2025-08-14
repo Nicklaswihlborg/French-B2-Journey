@@ -1283,3 +1283,259 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bootDeep);
   else bootDeep();
 })();
+/* =========================
+   Comprehension — Daily Mix (append to end of app.js)
+   Provides a 5–7 item mixed exercise (MCQ, Cloze, TF, Short Answer)
+   Awards +10xp once when the set is completed.
+   ========================= */
+(() => {
+  "use strict";
+  // ---- small utils ----
+  const $=(s,r=document)=>r.querySelector(s);
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  function norm(s){ return (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,"").replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim(); }
+
+  // storage facades (reuse your existing K/store if present)
+  const store2 = (typeof store!=="undefined") ? store : {
+    get:(k,d)=>{try{const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch{return d}},
+    set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+  };
+  const K2 = (typeof K!=="undefined") ? K : {};
+  K2.xp = K2.xp || 'fj_xp_by_day';
+  K2.aw = K2.aw || 'fj_awards_by_day';
+  K2.canDo = K2.canDo || 'fj_can_do';
+
+  function bumpXP(amount){
+    const d=today(); const m=store2.get(K2.xp,{}); m[d]=(m[d]||0)+ (amount||0); store2.set(K2.xp,m);
+  }
+  function bumpAward(tag, inc=1){
+    const d=today(); const a=store2.get(K2.aw,{}); a[d]=a[d]||{}; a[d][tag]=(a[d][tag]||0)+inc; store2.set(K2.aw,a);
+  }
+  function logCanDo(id){
+    const d=today(); const m=store2.get(K2.canDo,{}); m[d]=m[d]||{}; m[d][id]=(m[d][id]||0)+1; store2.set(K2.canDo,m);
+  }
+
+  async function loadPairs(){
+    // expects data/sentences.json with { pairs: ["FR|EN", ...] }
+    try{
+      const res = await fetch('data/sentences.json');
+      const js = await res.json();
+      const raw = Array.isArray(js.pairs) ? js.pairs : (Array.isArray(js) ? js : []);
+      return raw.map(s=>{
+        const ix = s.indexOf('|');
+        return ix>0 ? {fr: s.slice(0,ix).trim(), en: s.slice(ix+1).trim()} : {fr: s.trim(), en: ""};
+      }).filter(x=>x.fr && x.en);
+    }catch(e){
+      // simple fallback
+      return [
+        {fr:"Je travaille à Sierre et j'apprends le français.", en:"I work in Sierre and I am learning French."},
+        {fr:"Nous aimons faire des randonnées le week-end.", en:"We like to go hiking on the weekend."},
+        {fr:"Il fait très chaud aujourd’hui en Valais.", en:"It is very hot today in Valais."},
+        {fr:"Demain, je dois écrire un email formel.", en:"Tomorrow, I need to write a formal email."}
+      ];
+    }
+  }
+
+  // ---- UI injection ----
+  function injectDailyUI(){
+    if((document.body.dataset.page||"")!=="comprehension") return null;
+    if($("#compDaily")) return $("#compDaily");
+    const container = $(".container");
+    if(!container) return null;
+
+    const card = document.createElement("section");
+    card.className = "card";
+    card.id = "compDaily";
+    card.innerHTML = `
+      <h2>Daily Mix (5–7)</h2>
+      <div class="row wrap">
+        <button id="cddStart" class="btn">▶️ Start</button>
+        <button id="cddNext" class="btn" disabled>Next</button>
+        <span id="cddProg" class="pill">0/0</span>
+        <span id="cddMsg" class="pill">—</span>
+      </div>
+      <div id="cddBody" class="block"></div>
+    `;
+    container.insertBefore(card, container.firstChild);
+    return card;
+  }
+
+  function mcqView(item, bank){
+    const correct = item.en;
+    const distract = shuffle(bank.filter(x=>x.en!==correct).map(x=>x.en)).slice(0,3);
+    const opts = shuffle([correct, ...distract]);
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="small muted">MCQ — Choose the correct English translation</div>
+      <div class="well"><b>${item.fr}</b></div>
+      <div class="list">${opts.map((o,i)=>`
+        <label style="display:block;margin:.35rem 0">
+          <input type="radio" name="mcq" value="${i}"> ${o}
+        </label>`).join("")}
+      </div>
+      <button class="btn" id="mcqCheck">Check</button>
+      <span class="pill" id="mcqRes">—</span>
+    `;
+    let ok=false, done=false;
+    div.querySelector("#mcqCheck").onclick = ()=>{
+      if(done) return;
+      const sel = div.querySelector('input[name="mcq"]:checked');
+      if(!sel){ div.querySelector("#mcqRes").textContent="Pick an answer."; return; }
+      const chosen = opts[Number(sel.value)]||"";
+      ok = norm(chosen)===norm(correct);
+      div.querySelector("#mcqRes").textContent = ok? "✅ Correct" : `❌ "${correct}"`;
+      done=true;
+    };
+    return {el:div, isCorrect:()=>ok, isDone:()=>done};
+  }
+
+  function clozeView(item){
+    // remove a mid-length word from FR
+    const words = item.fr.split(/\s+/).filter(w=>w.length>0);
+    const cand = words.filter(w=>w.length>=4);
+    const hole = cand[Math.floor(Math.random()*cand.length)] || words[Math.floor(words.length/2)] || "";
+    const masked = item.fr.replace(hole, '____');
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="small muted">Cloze — Type the missing word</div>
+      <div class="well"><b>${masked}</b></div>
+      <input id="clozeIn" class="input" placeholder="missing word">
+      <button class="btn" id="clozeCheck">Check</button>
+      <span class="pill" id="clozeRes">—</span>
+    `;
+    let ok=false, done=false;
+    div.querySelector("#clozeCheck").onclick = ()=>{
+      if(done) return;
+      const val = norm(div.querySelector("#clozeIn").value);
+      ok = !!val && (val===norm(hole));
+      div.querySelector("#clozeRes").textContent = ok? "✅ Correct" : `❌ "${hole}"`;
+      done=true;
+    };
+    return {el:div, isCorrect:()=>ok, isDone:()=>done};
+  }
+
+  function tfView(item, bank){
+    // 50/50: show correct EN or a random distractor
+    const useTrue = Math.random() < 0.5;
+    const distract = shuffle(bank.filter(x=>x.en!==item.en)).map(x=>x.en)[0] || item.en;
+    const shown = useTrue ? item.en : distract;
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="small muted">True/False — Does this match?</div>
+      <div class="well"><b>${item.fr}</b><br><i>${shown}</i></div>
+      <div class="row wrap">
+        <button class="btn" id="tfTrue">True</button>
+        <button class="btn bad" id="tfFalse">False</button>
+        <span class="pill" id="tfRes">—</span>
+      </div>
+    `;
+    let ok=false, done=false;
+    function mark(ansTrue){
+      if(done) return;
+      ok = (useTrue && ansTrue) || (!useTrue && !ansTrue);
+      div.querySelector("#tfRes").textContent = ok? "✅ Correct" : (useTrue? "❌ It was True" : "❌ It was False");
+      done=true;
+    }
+    div.querySelector("#tfTrue").onclick = ()=>mark(true);
+    div.querySelector("#tfFalse").onclick = ()=>mark(false);
+    return {el:div, isCorrect:()=>ok, isDone:()=>done};
+  }
+
+  function saView(item){
+    // free answer: translate to English (basic token overlap scoring)
+    const target = norm(item.en);
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <div class="small muted">Short Answer — Translate to English</div>
+      <div class="well"><b>${item.fr}</b></div>
+      <textarea id="saIn" class="mono" rows="3" placeholder="Type your translation…"></textarea>
+      <div class="row">
+        <button class="btn" id="saCheck">Check</button>
+        <span class="pill" id="saRes">—</span>
+      </div>
+    `;
+    let ok=false, done=false;
+    div.querySelector("#saCheck").onclick = ()=>{
+      if(done) return;
+      const ans = norm(div.querySelector("#saIn").value);
+      const tksT = target.split(" ");
+      const tksA = ans.split(" ");
+      const inter = tksA.filter(x=> tksT.includes(x)).length;
+      const score = Math.round(100* inter / Math.max(1, tksT.length));
+      ok = score >= 60;
+      div.querySelector("#saRes").textContent = ok? `✅ ~${score}% overlap` : `❌ ~${score}% (≥60% to pass)`;
+      done=true;
+    };
+    return {el:div, isCorrect:()=>ok, isDone:()=>done};
+  }
+
+  function pickTypes(n){
+    const types = ['mcq','cloze','tf','sa'];
+    const out=[];
+    for(let i=0;i<n;i++){ out.push(types[i%types.length]); }
+    return shuffle(out); // mixed order
+  }
+
+  async function bootDaily(){
+    if((document.body.dataset.page||"")!=="comprehension") return;
+    const ui = injectDailyUI(); if(!ui) return;
+    const body = $("#cddBody"), prog=$("#cddProg"), msg=$("#cddMsg");
+    const btnStart=$("#cddStart"), btnNext=$("#cddNext");
+
+    const BANK = await loadPairs();
+    let PLAN=[], ITEMS=[], cur=0, correct=0;
+
+    function renderItem(){
+      if(cur>=ITEMS.length){
+        body.innerHTML = `<div class="small">Done! Score: ${correct}/${ITEMS.length}</div>`;
+        btnNext.disabled=true;
+        msg.textContent="✅ +10 xp";
+        bumpXP(10); bumpAward('comp',1); // log single comp completion
+        logCanDo("reading:short_texts");
+        return;
+      }
+      const it=ITEMS[cur];
+      prog.textContent = `${cur+1}/${ITEMS.length}`;
+      msg.textContent = `Type: ${it.type.toUpperCase()}`;
+      body.innerHTML="";
+      body.appendChild(it.view.el);
+      btnNext.disabled = false;
+    }
+
+    btnStart.onclick = ()=>{
+      const n = 6 + Math.floor(Math.random()*2); // 6–7 items
+      PLAN = pickTypes(n);
+      const seedIndex = parseInt(today().replace(/-/g,''),10) % BANK.length;
+      const pool = []; for(let i=0;i<n;i++){ pool.push( BANK[(seedIndex + i*37) % BANK.length] ); }
+      ITEMS = PLAN.map((t,i)=>{
+        const item = pool[i];
+        if(t==='mcq') return {type:t, view: mcqView(item, BANK)};
+        if(t==='cloze') return {type:t, view: clozeView(item)};
+        if(t==='tf') return {type:t, view: tfView(item, BANK)};
+        return {type:'sa', view: saView(item)};
+      });
+      cur=0; correct=0; renderItem();
+    };
+
+    btnNext.onclick = ()=>{
+      const v=ITEMS[cur]?.view;
+      if(!v) return;
+      if(!v.isDone || !v.isDone()){ msg.textContent = "Answer first."; return; }
+      if(v.isCorrect && v.isCorrect()) correct++;
+      cur++; renderItem();
+    };
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bootDaily);
+  else bootDaily();
+})();
+"""
+out_path = "/mnt/data/comp_daily_append.js"
+with open(out_path, "w", encoding="utf-8") as f:
+    f.write(code)
+
+out_path
+::contentReference[oaicite:0]{index=0}
+ ​:contentReference[oaicite:1]{index=1}​
