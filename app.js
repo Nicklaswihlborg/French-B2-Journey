@@ -1539,103 +1539,93 @@ with open(out_path, "w", encoding="utf-8") as f:
 out_path
 ::contentReference[oaicite:0]{index=0}
  ​:contentReference[oaicite:1]{index=1}​
-/* =========================
+ /* =========================
    Acceptance Criteria + UI Tweaks + Content Packs
-   (Append to end of app.js)
+   (SAFE version: no template strings)
    ========================= */
-(() => {
+(function(){
   "use strict";
 
   // ---------- utils ----------
-  const $=(s,r=document)=>r.querySelector(s);
-  const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-  const today=()=>new Date().toISOString().slice(0,10);
-  const fmt=d=>new Date(d).toISOString().slice(0,10);
-  const addDays=(d,n)=>{const x=new Date(d); x.setDate(x.getDate()+n); return x;};
-  const words=t=>(t||"").trim().split(/\s+/).filter(Boolean);
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]];} return x; }
+  function $(s,r){ return (r||document).querySelector(s); }
+  function $$(s,r){ return Array.from((r||document).querySelectorAll(s)); }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function fmt(d){ return new Date(d).toISOString().slice(0,10); }
+  function words(t){ return (t||"").trim().split(/\s+/).filter(Boolean); }
+  function shuffle(a){ var x=a.slice(), i, j, t; for(i=x.length-1;i>0;i--){ j=Math.floor(Math.random()*(i+1)); t=x[i]; x[i]=x[j]; x[j]=t; } return x; }
 
-  // ---------- storage facade & keys ----------
-  const store2 = (typeof store!=="undefined") ? store : {
-    get:(k,d)=>{ try{const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch{return d} },
-    set:(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch{} },
-    isPersistent:()=>{ try{localStorage.setItem("__t","1");localStorage.removeItem("__t"); return true;}catch{return false;} }
+  // ---------- storage & keys ----------
+  var store2 = (typeof store!=="undefined") ? store : {
+    get:function(k,d){ try{var v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
+    set:function(k,v){ try{localStorage.setItem(k, JSON.stringify(v));}catch(e){} }
   };
-  const K2 = (typeof K!=="undefined") ? K : {};
-  K2.goal       = K2.goal       || 'fj_goal_xp';
-  K2.xp         = K2.xp         || 'fj_xp_by_day';
-  K2.aw         = K2.aw         || 'fj_awards_by_day';
-  K2.b2         = K2.b2         || 'fj_b2_target';
-  K2.vocab      = K2.vocab      || 'fj_vocab';
-  K2.vocabProg  = K2.vocabProg  || 'fj_vocab_prog';
-  K2.listenProg = K2.listenProg || 'fj_listen_prog';
-  K2.speakProg  = K2.speakProg  || 'fj_speak_prog';
-  K2.weekTask   = K2.weekTask   || 'fj_week_task';
-  K2.canDo      = K2.canDo      || 'fj_can_do';
-  // new keys
-  K2.session    = 'fj_daily_session';
-  K2.wpmLast    = 'fj_wpm_last';
-  K2.weekOpin   = 'fj_week_opinions2';      // {weekISO:true/false}
-  K2.phrOverride= 'fj_phr_override';        // array of phrases for today (content packs)
+  var K2 = (typeof K!=="undefined") ? K : {};
+  K2.goal       = K2.goal       || "fj_goal_xp";
+  K2.xp         = K2.xp         || "fj_xp_by_day";
+  K2.aw         = K2.aw         || "fj_awards_by_day";
+  K2.vocab      = K2.vocab      || "fj_vocab";
+  K2.vocabProg  = K2.vocabProg  || "fj_vocab_prog";
+  K2.listenProg = K2.listenProg || "fj_listen_prog";
+  K2.speakProg  = K2.speakProg  || "fj_speak_prog";
+  K2.weekTask   = K2.weekTask   || "fj_week_task";
+  K2.canDo      = K2.canDo      || "fj_can_do";
+  // new
+  K2.session    = "fj_daily_session";
+  K2.wpmLast    = "fj_wpm_last";
+  K2.weekOpin   = "fj_week_opinions2";
+  K2.phrOverride= "fj_phr_override";
 
   function xpMap(){ return store2.get(K2.xp,{}); }
   function awMap(){ return store2.get(K2.aw,{}); }
-  function goalXP(){ return Number(store2.get(K2.goal,30)); }
 
-  // ---------- helpers for stats ----------
-  function weekStart(d=new Date()){
-    const day=(d.getDay()+6)%7; // Mon=0
-    const s=new Date(d); s.setHours(0,0,0,0); s.setDate(s.getDate()-day);
+  function weekStart(d){
+    d = d || new Date();
+    var day = (d.getDay()+6)%7; // Mon=0
+    var s = new Date(d); s.setHours(0,0,0,0); s.setDate(s.getDate()-day);
     return fmt(s);
   }
   function lastNDays(n, getter){
-    const out=[]; for(let i=n-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=fmt(d); out.push(getter(k)); }
+    var out=[], i; 
+    for(i=n-1;i>=0;i--){ var dt=new Date(); dt.setDate(dt.getDate()-i); var k=fmt(dt); out.push(getter(k)); }
     return out;
   }
 
-  // ---------- Acceptance Criteria computation ----------
+  // ---------- acceptance calculation ----------
   function computeAcceptance(){
-    const d=today();
-    const V = store2.get(K2.vocabProg,{}); const vToday=V[d]||{reviews:0, know:0, dk:0};
-    const L = store2.get(K2.listenProg,{}); const lToday=L[d]||{done:0, avg:0};
-    const S = store2.get(K2.speakProg,{}); const sToday=S[d]||{seconds:0};
-    const A = awMap()[d]||{};
+    var d=today();
+    var V = store2.get(K2.vocabProg,{}); var vToday=V[d]||{reviews:0, know:0, dk:0};
+    var L = store2.get(K2.listenProg,{}); var lToday=L[d]||{done:0, avg:0};
+    var S = store2.get(K2.speakProg,{}); var sToday=S[d]||{seconds:0};
+    var A = awMap()[d]||{};
 
-    const daily = {
+    var daily = {
       vocab10 : (vToday.reviews||0) >= 10,
-      compSet : (A.comp||0) >= 1, // granted by Daily Mix or any comp completion
-      speak60 : (sToday.seconds||0) >= 60 || (A.speak60||0)>=1,
+      compSet : (A.comp||0) >= 1,
+      speak60 : (sToday.seconds||0) >= 60 || (A.speak60||0) >= 1,
       listen3 : (lToday.done||0) >= 3
     };
 
-    // Weekly metrics
-    const wk=weekStart();
-    const WTask = store2.get(K2.weekTask,{})[wk]||{status:"pending", seconds:0};
-    const opinions2 = !!(store2.get(K2.weekOpin,{})[wk]);
+    var wk = weekStart();
+    var WTask = (store2.get(K2.weekTask,{}))[wk] || {status:"pending", seconds:0};
+    var opinions2 = !!(store2.get(K2.weekOpin,{}))[wk];
 
-    // speak avg 7d
-    const s7 = lastNDays(7, k => (S[k]?.seconds||0));
-    const speakAvg7 = Math.round( (s7.reduce((a,b)=>a+b,0)/7) / 60 ); // minutes/day
+    var s7 = lastNDays(7, function(k){ return (S[k]&&S[k].seconds)||0; });
+    var speakAvg7 = Math.round( (s7.reduce(function(a,b){return a+b;},0)/7) / 60 );
 
-    // listening avg across week (weighted)
-    const lsDays = lastNDays(7, k => L[k]||{done:0,total:0,avg:0});
-    let tot=0, cnt=0;
-    lsDays.forEach(x=>{ if(x.done>0){ tot += (x.avg||0)*x.done; cnt += x.done; } });
-    const listenAvgW = Math.round( tot/Math.max(1,cnt) );
+    var lsDays = lastNDays(7, function(k){ return L[k]||{done:0,avg:0}; });
+    var tot=0, cnt=0; 
+    lsDays.forEach(function(x){ if(x.done>0){ tot += (x.avg||0)*x.done; cnt += x.done; } });
+    var listenAvgW = Math.round( tot / Math.max(1,cnt) );
 
-    // vocab deck stats
-    const deck = store2.get(K2.vocab,[]);
-    const todayKey = d;
-    const dueCount = deck.filter(c=> (c.due ? fmt(c.due) <= todayKey : true)).length;
-    const leeches  = deck.filter(c=> c.tag==="leech").length;
-    const leechPct = Math.round(100 * (leeches/Math.max(1, deck.length)));
+    var deck = store2.get(K2.vocab,[]);
+    var dueCount = deck.filter(function(c){ return c.due ? (fmt(c.due) <= d) : true; }).length;
+    var leeches  = deck.filter(function(c){ return c.tag==="leech"; }).length;
+    var leechPct = Math.round(100 * (leeches/Math.max(1, deck.length)));
 
-    // Read-aloud WPM
-    const wpm = Number(store2.get(K2.wpmLast,0));
+    var wpm = Number(store2.get(K2.wpmLast,0));
 
-    const weekly = {
-      mock15   : (WTask.status==="completed" && WTask.seconds>=900),  // ≥15 min
+    var weekly = {
+      mock15   : (WTask.status==="completed" && WTask.seconds>=900),
       speakAvg : speakAvg7 >= 7,
       wpmRange : (wpm>=110 && wpm<=150),
       opinions : opinions2,
@@ -1644,80 +1634,66 @@ out_path
       vocabDueOk : dueCount < 150,
       leechOk    : leechPct < 5
     };
-    return {daily, weekly, values:{speakAvg7, listenAvgW, dueCount, leechPct, wpm, wkStatus:WTask.status, wkSecs:WTask.seconds}};
+    return {daily:daily, weekly:weekly, values:{speakAvg7:speakAvg7, listenAvgW:listenAvgW, dueCount:dueCount, leechPct:leechPct, wpm:wpm, wkStatus:WTask.status, wkSecs:WTask.seconds}};
   }
 
-  // ---------- Inject B2 Readiness card on Dashboard ----------
+  // ---------- B2 Readiness (Dashboard) ----------
   function injectReadiness(){
     if((document.body.dataset.page||"")!=="dashboard") return;
     if($("#b2Ready")) return;
-    const container = $(".container"); if(!container) return;
+    var container = $(".container"); if(!container) return;
 
-    const card=document.createElement("section");
+    var card=document.createElement("section");
     card.className="card";
     card.id="b2Ready";
-    card.innerHTML = `
-      <h2>B2 Readiness — Acceptance Criteria</h2>
-      <div id="b2Daily"></div>
-      <div id="b2Weekly" style="margin-top:.75rem"></div>
-    `;
+    card.innerHTML = '<h2>B2 Readiness — Acceptance Criteria</h2><div id="b2Daily"></div><div id="b2Weekly" style="margin-top:.75rem"></div>';
     container.insertBefore(card, container.children[2]||null);
 
-    function row(ok,label,detail=""){
+    function row(ok,label,detail){
       return '<div class="row wrap small">'
-     + '<span class="pill ' + (ok ? 'ok' : '') + '">' + (ok ? '✅ Met' : '⏳ Not yet') + '</span>'
-     + '<span class="muted">' + label + (detail ? ' — <b>' + detail + '</b>' : '') + '</span>'
-     + '</div>';
+        + '<span class="pill ' + (ok?'ok':'') + '">' + (ok?'✅ Met':'⏳ Not yet') + '</span>'
+        + '<span class="muted">' + label + (detail?(' — <b>'+detail+'</b>'):'') + '</span>'
+        + '</div>';
     }
 
     function render(){
-      const C=computeAcceptance();
-      const d=C.daily, w=C.weekly, v=C.values;
-      $("#b2Daily").innerHTML = `
-        <h3>Today</h3>
-        ${row(d.vocab10, "Vocab: ≥10 reviews")}
-        ${row(d.compSet, "Comprehension: 5–7 item set complete")}
-        ${row(d.speak60, "Speaking: ≥ 60s")}
-        ${row(d.listen3, "Listening: 3 items complete")}
-      `;
-      $("#b2Weekly").innerHTML = `
-        <h3>This week</h3>
-        ${row(w.mock15, "Mock conversation: ≥15 min", `current ${(v.wkSecs/60)|0} min • ${v.wkStatus}`)}
-        ${row(w.speakAvg, "7-day speaking average ≥ 7 min/day", `${v.speakAvg7} min/day`)}
-        ${row(w.wpmRange, "Read-aloud WPM in 110–150", `${v.wpm||0} wpm`)}
-        ${row(w.opinions, "Recorded ≥2 opinion phrases in weekly task")}
-        ${row(w.listen80, "Listening accuracy ≥ 80% (7d avg)", `${v.listenAvgW}%`)}
-        ${row(w.listenFullToday, "Today’s Listening: 3/3")}
-        ${row(w.vocabDueOk, "Vocabulary due count < 150", `${v.dueCount}`)}
-        ${row(w.leechOk, "Leeches < 5%", `${v.leechPct}%`)}
-      `;
+      var C=computeAcceptance(), d=C.daily, w=C.weekly, v=C.values;
+      $('#b2Daily').innerHTML =
+        '<h3>Today</h3>'
+        + row(d.vocab10, 'Vocab: >=10 reviews')
+        + row(d.compSet, 'Comprehension: 5–7 item set complete')
+        + row(d.speak60, 'Speaking: >= 60s')
+        + row(d.listen3, 'Listening: 3 items complete');
+
+      $('#b2Weekly').innerHTML =
+        '<h3>This week</h3>'
+        + row(w.mock15, 'Mock conversation: >=15 min', 'current ' + ((v.wkSecs/60)|0) + ' min • ' + v.wkStatus)
+        + row(w.speakAvg, '7-day speaking average >= 7 min/day', String(v.speakAvg7) + ' min/day')
+        + row(w.wpmRange, 'Read-aloud WPM in 110–150', String(v.wpm||0) + ' wpm')
+        + row(w.opinions, 'Recorded >=2 opinion phrases in weekly task')
+        + row(w.listen80, 'Listening accuracy >= 80% (7d avg)', String(v.listenAvgW) + '%')
+        + row(w.listenFullToday, 'Today’s Listening: 3/3')
+        + row(w.vocabDueOk, 'Vocabulary due count < 150', String(v.dueCount))
+        + row(w.leechOk, 'Leeches < 5%', String(v.leechPct) + '%');
     }
     render();
-    setInterval(render, 2000); // live update
+    setInterval(render, 2000);
   }
 
-  // ---------- Start Daily Session (chains pages) ----------
+  // ---------- Daily Session (Dashboard -> chain pages) ----------
   function injectDailySessionButton(){
     if((document.body.dataset.page||"")!=="dashboard") return;
     if($("#startChain")) return;
-    const container = $(".container"); if(!container) return;
-    const card = document.createElement("section");
+    var container = $(".container"); if(!container) return;
+    var card = document.createElement("section");
     card.className="card";
-    card.innerHTML = `
-      <h2>Daily Session</h2>
-      <div class="row wrap">
-        <button class="btn" id="startChain">▶️ Start Daily Session</button>
-        <span id="chainState" class="pill">—</span>
-      </div>
-      <p class="muted small">Runs Vocab → Comprehension → Speaking → Listening → Phrases automatically. You may need to allow mic.</p>
-    `;
+    card.innerHTML =
+      '<h2>Daily Session</h2>'
+      + '<div class="row wrap"><button class="btn" id="startChain">▶️ Start Daily Session</button><span id="chainState" class="pill">—</span></div>'
+      + '<p class="muted small">Runs Vocab -> Comprehension -> Speaking -> Listening -> Phrases automatically. You may need to allow mic.</p>';
     container.insertBefore(card, container.firstChild);
-    $("#startChain").onclick = ()=>{
-      const sess = {
-        active:true, idx:0,
-        steps:['vocab','comprehension','speaking','listening','phrases'],
-        created: Date.now()
-      };
+    $("#startChain").onclick = function(){
+      var sess = {active:true, idx:0, steps:['vocab','comprehension','speaking','listening','phrases'], created:Date.now()};
       store2.set(K2.session, sess);
       $("#chainState").textContent = "Running…";
       location.href = 'vocabulary.html?daily=1';
@@ -1725,229 +1701,214 @@ out_path
   }
 
   function chainOverlay(step){
-    const bar=document.createElement('div');
+    var bar=document.createElement('div');
     bar.id='chainBar';
     bar.style.cssText='position:fixed;bottom:10px;left:10px;right:10px;background:#0e1730;border:1px solid #25325a;border-radius:10px;padding:.5rem;display:flex;gap:.5rem;align-items:center;z-index:9999';
-    bar.innerHTML = `<span class="pill">Daily Session</span><span>Step: <b>${step}</b></span><span id="chainInfo" class="small muted">working…</span>`;
+    bar.innerHTML = '<span class="pill">Daily Session</span><span>Step: <b>'+step+'</b></span><span id="chainInfo" class="small muted">working…</span>';
     document.body.appendChild(bar);
     return {
-      setInfo:t=>{ const n=$("#chainInfo"); if(n) n.textContent=t; },
-      done:()=>{ document.body.removeChild(bar); }
+      setInfo:function(t){ var n=$("#chainInfo"); if(n) n.textContent=t; },
+      done:function(){ try{document.body.removeChild(bar);}catch(e){} }
     };
   }
 
   function runChainIfNeeded(){
-    const sess = store2.get(K2.session,null);
+    var sess = store2.get(K2.session,null);
     if(!sess || !sess.active) return;
-    const page=document.body.dataset.page||'';
-    const steps=sess.steps||[];
-    const step=steps[sess.idx]||'';
+    var page=document.body.dataset.page||'';
+    var steps=sess.steps||[];
+    var step=steps[sess.idx]||'';
     if(page!==step) return;
 
-    const overlay = chainOverlay(step);
+    var overlay = chainOverlay(step);
 
     function next(){
       sess.idx++; store2.set(K2.session, sess);
-      const nextStep = steps[sess.idx];
+      var nextStep = steps[sess.idx];
       if(!nextStep){
         store2.set(K2.session, {active:false});
         overlay.setInfo('All done! 🎉');
-        setTimeout(()=>{ overlay.done(); location.href='index.html'; }, 900);
+        setTimeout(function(){ overlay.done(); location.href='index.html'; }, 900);
         return;
       }
-      const map = {vocab:'vocabulary.html', comprehension:'comprehension.html', speaking:'speaking.html', listening:'listening.html', phrases:'phrases.html'};
-      location.href = map[nextStep] + (nextStep==='vocab'?'?daily=1': nextStep==='listening'?'?daily=1':'');
+      var map = {vocab:'vocabulary.html', comprehension:'comprehension.html', speaking:'speaking.html', listening:'listening.html', phrases:'phrases.html'};
+      var extra = (nextStep==='vocab') ? '?daily=1' : (nextStep==='listening' ? '?daily=1' : '');
+      location.href = map[nextStep] + extra;
     }
 
     if(step==='vocab'){
-      $('#startQuiz')?.click?.();
+      var btn = $('#startQuiz'); if(btn && btn.click) btn.click();
       overlay.setInfo('Do 10 reviews…');
-      const t=setInterval(()=>{
-        const prog = store2.get(K2.vocabProg,{});
-        const v=prog[today()]||{reviews:0};
-        if((v.reviews||0)>=10){ clearInterval(t); next(); }
+      var iv1=setInterval(function(){
+        var prog = store2.get(K2.vocabProg,{});
+        var v=prog[today()]||{reviews:0};
+        if((v.reviews||0)>=10){ clearInterval(iv1); next(); }
       }, 1500);
     }
     else if(step==='comprehension'){
       overlay.setInfo('Complete Daily Mix (6–7 items)…');
-      setTimeout(()=>{ $('#cddStart')?.click?.(); }, 500); // uses the Daily Mix injector we added earlier
-      const base = (awMap()[today()]||{}).comp||0;
-      const t=setInterval(()=>{
-        const now = (awMap()[today()]||{}).comp||0;
-        if(now>=base+1){ clearInterval(t); next(); }
+      setTimeout(function(){ var x=$('#cddStart'); if(x && x.click) x.click(); }, 500);
+      var base = (awMap()[today()]||{}).comp||0;
+      var iv2=setInterval(function(){
+        var now = (awMap()[today()]||{}).comp||0;
+        if(now>=base+1){ clearInterval(iv2); next(); }
       }, 1500);
     }
     else if(step==='speaking'){
-      overlay.setInfo('Speak ≥60 seconds (allow mic)…');
-      const base = (store2.get(K2.speakProg,{}))[today()]?.seconds||0;
-      const t=setInterval(()=>{
-        const v=(store2.get(K2.speakProg,{}))[today()]?.seconds||0;
-        if(v-base>=60){ clearInterval(t); next(); }
+      overlay.setInfo('Speak >=60 seconds (allow mic)…');
+      var baseS = (store2.get(K2.speakProg,{}))[today()] && (store2.get(K2.speakProg,{}))[today()].seconds || 0;
+      var iv3=setInterval(function(){
+        var v=(store2.get(K2.speakProg,{}))[today()]; v = v ? v.seconds||0 : 0;
+        if(v-baseS>=60){ clearInterval(iv3); next(); }
       }, 1500);
     }
     else if(step==='listening'){
       overlay.setInfo('Finish 3 daily listening items…');
-      document.querySelector('[data-t="daily"]')?.click?.();
-      const t=setInterval(()=>{
-        const v=(store2.get(K2.listenProg,{}))[today()]?.done||0;
-        if(v>=3){ clearInterval(t); next(); }
+      var tab=document.querySelector('[data-t="daily"]'); if(tab && tab.click) tab.click();
+      var iv4=setInterval(function(){
+        var v=(store2.get(K2.listenProg,{}))[today()]; v = v ? v.done||0 : 0;
+        if(v>=3){ clearInterval(iv4); next(); }
       }, 1500);
     }
     else if(step==='phrases'){
       overlay.setInfo('Play today’s phrase set…');
-      setTimeout(()=>{ $('#speakAllPhrases')?.click?.(); }, 600);
-      const base=(awMap()[today()]||{}).phrSet||0;
-      const t=setInterval(()=>{
-        const now=(awMap()[today()]||{}).phrSet||0;
-        if(now>=base+1){ clearInterval(t); next(); }
+      setTimeout(function(){ var x=$('#speakAllPhrases'); if(x && x.click) x.click(); }, 600);
+      var baseP=(awMap()[today()]||{}).phrSet||0;
+      var iv5=setInterval(function(){
+        var now=(awMap()[today()]||{}).phrSet||0;
+        if(now>=baseP+1){ clearInterval(iv5); next(); }
       }, 1500);
     }
   }
 
   // ---------- Phrases: Content Packs ----------
-  async function injectPacks(){
+  function injectPacks(){
     if((document.body.dataset.page||"")!=='phrases') return;
     if($('#packCard')) return;
-    const main=$('.container'); if(!main) return;
+    var main=$('.container'); if(!main) return;
 
-    async function load(url){ try{ const r=await fetch(url); return await r.json(); }catch{return []} }
-    const connectors = await load('data/pack_connectors.json');
-    const opinions   = await load('data/pack_opinions.json');
-    const hedging    = await load('data/pack_hedging.json');
-    const funcs      = await load('data/pack_functions.json');
+    function load(url, cb){
+      fetch(url).then(function(r){ return r.json(); }).then(function(js){ cb(js); })
+      .catch(function(){ cb([]); });
+    }
 
-    const card=document.createElement('section');
+    var connectors=[], opinions=[], hedging=[], funcs=[];
+    load('data/pack_connectors.json', function(x){ connectors=x||[]; });
+    load('data/pack_opinions.json',  function(x){ opinions=x||[];   });
+    load('data/pack_hedging.json',   function(x){ hedging=x||[];    });
+    load('data/pack_functions.json', function(x){ funcs=x||[];      });
+
+    var card=document.createElement('section');
     card.className='card';
     card.id='packCard';
-    card.innerHTML = `
-      <h2>Content Packs</h2>
-      <div class="row wrap small">
-        <label><input type="checkbox" id="pkConn"> Connectors (${connectors.length})</label>
-        <label><input type="checkbox" id="pkOpin"> Opinions (${opinions.length})</label>
-        <label><input type="checkbox" id="pkHedge"> Hedging (${hedging.length})</label>
-        <label><input type="checkbox" id="pkFunc"> Functional (${funcs.length})</label>
-      </div>
-      <div class="row">
-        <button id="pkMake" class="btn">Use these packs today</button>
-        <button id="pkSpeak" class="btn">🔊 Speak All (packs)</button>
-      </div>
-      <div class="small muted">Pack phrases are additional to your daily set. Speaking them awards +10 xp once.</div>
-      <div id="pkList"></div>
-    `;
+    card.innerHTML =
+      '<h2>Content Packs</h2>'
+      + '<div class="row wrap small">'
+      +   '<label><input type="checkbox" id="pkConn"> Connectors</label>'
+      +   '<label><input type="checkbox" id="pkOpin"> Opinions</label>'
+      +   '<label><input type="checkbox" id="pkHedge"> Hedging</label>'
+      +   '<label><input type="checkbox" id="pkFunc"> Functional</label>'
+      + '</div>'
+      + '<div class="row"><button id="pkMake" class="btn">Use these packs today</button><button id="pkSpeak" class="btn">🔊 Speak All (packs)</button></div>'
+      + '<div class="small muted">Pack phrases are additional to your daily set. Speaking them awards +10 xp once.</div>'
+      + '<div id="pkList"></div>';
     main.appendChild(card);
 
-    const chosen=()=>{
-      let out=[];
+    function chosen(){
+      var out=[];
       if($('#pkConn').checked) out=out.concat(connectors);
       if($('#pkOpin').checked) out=out.concat(opinions);
       if($('#pkHedge').checked) out=out.concat(hedging);
       if($('#pkFunc').checked) out=out.concat(funcs);
-      return shuffle(out).slice(0, 12);
-    };
+      return shuffle(out).slice(0,12);
+    }
 
-    $('#pkMake').onclick = ()=>{
-      const arr = chosen();
+    $('#pkMake').onclick = function(){
+      var arr = chosen();
       store2.set(K2.phrOverride, {d:today(), list:arr});
-      $('#pkList').innerHTML = arr.map((p,i)=>`<div class="row"><span class="pill small">${i+1}</span><span>${p}</span></div>`).join('');
+      $('#pkList').innerHTML = arr.map(function(p,i){ return '<div class="row"><span class="pill small">'+(i+1)+'</span><span>'+p+'</span></div>'; }).join('');
       alert('Pack loaded for today.');
     };
 
-    $('#pkSpeak').onclick = ()=>{
-      const ov = store2.get(K2.phrOverride,{});
-      const list = (ov.d===today() && Array.isArray(ov.list) && ov.list.length) ? ov.list : chosen();
-      $('#pkList').innerHTML = list.map((p,i)=>`<div class="row"><span class="pill small">${i+1}</span><span>${p}</span></div>`).join('');
-      let i=0;
+    $('#pkSpeak').onclick = function(){
+      var ov = store2.get(K2.phrOverride,{});
+      var list = (ov.d===today() && Array.isArray(ov.list) && ov.list.length) ? ov.list : chosen();
+      $('#pkList').innerHTML = list.map(function(p,i){ return '<div class="row"><span class="pill small">'+(i+1)+'</span><span>'+p+'</span></div>'; }).join('');
+      var i=0;
       (function step(){
         if(i>=list.length){
-          const a=awMap(); const d=today(); a[d]=a[d]||{}; a[d].phrSet = Math.min(2, (a[d].phrSet||0)+1); store2.set(K2.aw,a);
-          const x=xpMap(); x[d]=(x[d]||0)+10; store2.set(K2.xp,x);
+          var a=awMap(); var d=today(); a[d]=a[d]||{}; a[d].phrSet = Math.min(2, (a[d].phrSet||0)+1); store2.set(K2.aw,a);
+          var x=xpMap(); x[d]=(x[d]||0)+10; store2.set(K2.xp,x);
           alert('Packs complete! (+10 xp)');
           return;
         }
         try{
-          const u=new SpeechSynthesisUtterance(list[i]); u.lang='fr-FR'; speechSynthesis.speak(u);
-          u.onend=()=>{ i++; setTimeout(step,300); };
-        }catch{ i++; setTimeout(step,200); }
+          var u=new SpeechSynthesisUtterance(list[i]); u.lang='fr-FR'; speechSynthesis.speak(u);
+          u.onend=function(){ i++; setTimeout(step,300); };
+        }catch(e){ i++; setTimeout(step,200); }
       })();
     };
   }
 
-  // ---------- Speaking page: Read-Aloud WPM + Opinions checklist ----------
-  async function injectSpeakingTools(){
+  // ---------- Speaking tools (WPM + opinions checkbox) ----------
+  function injectSpeakingTools(){
     if((document.body.dataset.page||"")!=='speaking') return;
-    const main=$('.container'); if(!main) return;
+    var main=$('.container'); if(!main) return;
     if($('#wpmCard')) return;
 
-    async function load(url, fb){ try{ const r=await fetch(url); return await r.json(); }catch{return fb} }
-    const texts = await load('data/read_aloud.json', [{fr:"Le français est une belle langue à pratiquer chaque jour."}]);
+    function load(url, cb, fb){ 
+      fetch(url).then(function(r){ return r.json(); }).then(function(js){ cb(js); })
+      .catch(function(){ cb(fb||[{fr:"Le français est une belle langue à pratiquer chaque jour."}]); });
+    }
 
-    const card=document.createElement('section');
-    card.className='card';
-    card.id='wpmCard';
-    card.innerHTML = `
-      <h2>Read-Aloud Test</h2>
-      <div class="row wrap">
-        <select id="wpmPick" class="input"></select>
-        <button id="wpmStart" class="btn">Start</button>
-        <button id="wpmStop" class="btn bad">Stop</button>
-        <span id="wpmOut" class="pill">—</span>
-      </div>
-      <div id="wpmText" class="well small"></div>
-    `;
-    main.appendChild(card);
+    load('data/read_aloud.json', function(texts){
+      var card=document.createElement('section');
+      card.className='card';
+      card.id='wpmCard';
+      card.innerHTML =
+        '<h2>Read-Aloud Test</h2>'
+        + '<div class="row wrap"><select id="wpmPick" class="input"></select><button id="wpmStart" class="btn">Start</button><button id="wpmStop" class="btn bad">Stop</button><span id="wpmOut" class="pill">—</span></div>'
+        + '<div id="wpmText" class="well small"></div>';
+      main.appendChild(card);
 
-    const sel=$('#wpmPick');
-    texts.slice(0,8).forEach((t,i)=>{
-      const wc = words(t.fr).length;
-      const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`#${i+1} — ${wc} words`;
-      sel.appendChild(opt);
+      var sel=$('#wpmPick'); texts.slice(0,8).forEach(function(t,i){
+        var wc=words(t.fr).length; var opt=document.createElement('option');
+        opt.value=String(i); opt.textContent='#'+(i+1)+' — '+wc+' words'; sel.appendChild(opt);
+      });
+      function show(){ var t=texts[Number(sel.value)||0]; $('#wpmText').textContent = t.fr; }
+      sel.onchange=show; show();
+
+      var timer=null, started=0;
+      $('#wpmStart').onclick=function(){ started=Date.now(); clearInterval(timer);
+        timer=setInterval(function(){ var sec=Math.round((Date.now()-started)/1000); $('#wpmOut').textContent = sec+'s'; },250);
+      };
+      $('#wpmStop').onclick=function(){
+        clearInterval(timer); var t=texts[Number(sel.value)||0]; var wc=words(t.fr).length;
+        var sec=Math.max(1, Math.round((Date.now()-started)/1000)); var wpm=Math.round(wc/(sec/60));
+        store2.set(K2.wpmLast,wpm); $('#wpmOut').textContent = wpm+' wpm'; alert('Estimated '+wpm+' WPM');
+      };
     });
-    const show=()=>{ const t=texts[Number(sel.value)||0]; $('#wpmText').textContent = t.fr; };
-    sel.onchange = show; show();
 
-    let timer=null, started=0;
-    $('#wpmStart').onclick = ()=>{ started=Date.now(); clearInterval(timer); timer=setInterval(()=>{
-      const sec=Math.round((Date.now()-started)/1000);
-      $('#wpmOut').textContent = `${sec}s`;
-    }, 250); };
-    $('#wpmStop').onclick = ()=>{
-      clearInterval(timer);
-      const t=texts[Number(sel.value)||0]; const wc=words(t.fr).length;
-      const sec=Math.max(1, Math.round((Date.now()-started)/1000));
-      const wpm = Math.round(wc / (sec/60));
-      store2.set(K2.wpmLast, wpm);
-      $('#wpmOut').textContent = `${wpm} wpm`;
-      alert(`Estimated ${wpm} WPM`);
-    };
-
-    // Opinions checklist for weekly task
-    const wk=weekStart();
-    const op=document.createElement('section');
-    op.className='card';
-    op.innerHTML = `
-      <h2>Weekly Task Checklist</h2>
-      <label><input type="checkbox" id="opin2"> I used ≥2 opinion phrases (p.ex., "à mon avis", "je trouve que").</label>
-    `;
+    var wk=weekStart();
+    var op=document.createElement('section'); op.className='card';
+    op.innerHTML='<h2>Weekly Task Checklist</h2><label><input type="checkbox" id="opin2"> I used >=2 opinion phrases (e.g., "à mon avis", "je trouve que").</label>';
     main.appendChild(op);
-    $('#opin2').checked = !!(store2.get(K2.weekOpin,{})[wk]);
-    $('#opin2').onchange = ()=>{
-      const m=store2.get(K2.weekOpin,{}); m[wk]= !!$('#opin2').checked; store2.set(K2.weekOpin,m);
+    $('#opin2').checked = !!(store2.get(K2.weekOpin,{}))[wk];
+    $('#opin2').onchange = function(){
+      var m=store2.get(K2.weekOpin,{}); m[wk]= !!$('#opin2').checked; store2.set(K2.weekOpin,m);
     };
   }
 
-  // ---------- CSS hint (pills / chain) ----------
+  // ---------- style hook (for green pill) ----------
   function injectStyle(){
     if(document.getElementById('criteriaStyle')) return;
-    const s=document.createElement('style');
+    var s=document.createElement('style');
     s.id='criteriaStyle';
-    s.textContent = `
-      #b2Ready .pill.ok{ background:#163a2f; border-color:#215c4a;}
-      #chainBar .pill{ display:inline-block; padding:.25rem .6rem; border:1px solid #2a3a5a; border-radius:999px; }
-    `;
+    s.textContent = '#b2Ready .pill.ok{ background:#163a2f; border-color:#215c4a;} #chainBar .pill{ display:inline-block; padding:.25rem .6rem; border:1px solid #2a3a5a; border-radius:999px; }';
     document.head.appendChild(s);
   }
 
-  // ---------- Boot ----------
+  // ---------- boot ----------
   function boot(){
     injectStyle();
     injectReadiness();
@@ -1958,4 +1919,5 @@ out_path
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
+
 })();
