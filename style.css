@@ -1,72 +1,154 @@
-:root{
-  --bg:#0b1220; --panel:#111a2b; --soft:#18233a; --muted:#9fb0cc;
-  --text:#eaf1ff; --accent:#5aa2ff; --good:#2dd4bf; --bad:#ef476f; --gold:#ffcc66;
-  --ring:#72b0ff; --ringbg:#0d1830;
+/* ===== Your Original CSS ===== */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f7f7f7;
 }
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-a{color:inherit;text-decoration:none}
-.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-.small{font-size:.9rem}
-.muted{color:var(--muted)}
-.grow{flex:1}
-.wrap{flex-wrap:wrap}
-.container{max-width:1100px;margin:1rem auto;padding:0 1rem}
 
-/* topbar */
-.topbar{position:sticky;top:0;z-index:10;background:#0b1220f0;border-bottom:1px solid #1b2542}
-.brand{font-weight:700;padding:.9rem 1rem}
-.nav{display:flex;gap:.35rem;flex-wrap:wrap;padding:.5rem 1rem;border-top:1px solid #0e162f}
-.nav a{padding:.45rem .7rem;border-radius:.6rem;color:#d8e6ff}
-.nav a.active,.nav a:hover{background:var(--soft)}
+header {
+    background-color: #2a3a5a;
+    color: white;
+    padding: 10px 0;
+    text-align: center;
+}
 
-/* cards & layout */
-.card{background:var(--panel);border:1px solid #1b2542;border-radius:14px;padding:1rem}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
-.row{display:flex;gap:.6rem;align-items:center}
-.list{margin:.25rem 0 0 1rem}
-.pill{background:var(--soft);border:1px solid #1b2542;color:#d8e6ff;border-radius:999px;padding:.25rem .6rem}
-.badge{background:#362c59;border:1px solid #4a3b7e;padding:.2rem .5rem;border-radius:.6rem}
+nav {
+    display: flex;
+    justify-content: center;
+    background-color: #1e2a44;
+}
 
-/* buttons & inputs */
-.btn{background:#223052;border:1px solid #1b2542;color:#eaf1ff;padding:.5rem .8rem;border-radius:.7rem;cursor:pointer;font-weight:600}
-.btn:hover{filter:brightness(1.06)}
-.btn.good{background:var(--good);color:#06221c;border-color:#145a4d}
-.btn.bad{background:#4a1b2a;border-color:#5a2233}
-.btn.link{background:#1a253f}
-.input,select,textarea{background:#0c1427;color:#eaf1ff;border:1px solid #1b2542;border-radius:.7rem;padding:.5rem .6rem;width:100%}
-textarea{min-height:120px}
+nav a {
+    color: white;
+    padding: 14px 20px;
+    display: block;
+    text-decoration: none;
+}
 
-/* progress ring */
-.ring{position:relative;width:140px;height:140px}
-.ring canvas{position:absolute;inset:0}
-.ring .center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700}
+nav a:hover {
+    background-color: #3e4e6e;
+}
 
-/* progress bar & chart */
-.progress{height:12px;background:#0f1830;border:1px solid #1b2542;border-radius:999px;overflow:hidden;margin:.4rem 0 .6rem}
-.bar{height:100%;background:linear-gradient(90deg,#5aa2ff,#97c6ff)}
-.tableWrap{overflow:auto;border:1px solid #1b2542;border-radius:10px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:.5rem;border-bottom:1px solid #1b2542;text-align:left}
-th{color:#cde0ff;background:#0f1830}
+main {
+    padding: 20px;
+}
 
-/* tabs */
-.tabs{display:flex;gap:.4rem;margin:.2rem 0 .8rem}
-.tab{padding:.35rem .6rem;border:1px solid #1b2542;border-radius:.6rem;background:#16223a;cursor:pointer}
-.tab.active{background:#203258}
+section {
+    margin-bottom: 30px;
+}
 
-/* calendar */
-.calMonth{margin:.75rem 0 .35rem;font-weight:700}
-.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.calCell{aspect-ratio:1/1.05;background:#0f1830;border:1px solid #1b2542;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer}
-.calCell.future{color:#7182a6;cursor:default}
-.calCell.today{outline:2px solid var(--gold)}
-.calCell.done{background:#163a2f;color:#bff3e7}
+h2 {
+    color: #2a3a5a;
+}
 
-/* flashcards */
-.fc{display:flex;flex-direction:column;gap:.6rem}
-.fc-card{background:#0e1730;border:1px dashed #25325a;border-radius:12px;padding:1rem;text-align:center}
-.fc-word{font-size:1.5rem;font-weight:700}
-.fc-actions{display:flex;gap:.5rem;justify-content:center}
+button {
+    padding: 10px 20px;
+    background-color: #2a3a5a;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #3e4e6e;
+}
+
+input[type="text"], input[type="number"], select {
+    padding: 8px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Progress Ring */
+#ring {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+#ring svg {
+    transform: rotate(-90deg);
+}
+
+#xpLabel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #2a3a5a;
+}
+
+/* Streak & Countdown Badges */
+#streakBadge, #countdownBadge {
+    background-color: #2a3a5a;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 999px;
+    display: inline-block;
+    margin: 5px;
+}
+
+/* XP Bar */
+#xpBar {
+    height: 20px;
+    background-color: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+#xpBar div {
+    height: 100%;
+    background-color: #2a3a5a;
+    transition: width 0.3s;
+}
+
+/* Calendar */
+.calendar-day {
+    display: inline-block;
+    width: 14%;
+    padding: 10px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.calendar-day.today {
+    border: 2px solid #2a3a5a;
+}
+
+.calendar-day.done {
+    background-color: #a3d3a1;
+}
+
+/* ===== Quick-Win Additions ===== */
+
+/* Checklist completed state */
+#chk-vocab.done,
+#chk-comp.done,
+#chk-speak.done,
+#chk-listen.done,
+#chk-phr.done {
+    opacity: 0.8;
+    text-decoration: line-through;
+}
+
+/* Next Action button style */
+#nextAction .btn {
+    display: inline-block;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid #2a3a5a;
+    border-radius: 999px;
+    background: white;
+    color: #2a3a5a;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+#nextAction .btn:hover {
+    background: #f0f0f0;
+}
