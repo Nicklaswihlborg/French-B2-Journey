@@ -25,30 +25,28 @@
   <main class="container">
     <section class="card">
       <div class="tabs">
-        <button class="tab active" data-t="dict">Dictation</button>
-        <button class="tab" data-t="news">News Bulletin</button>
+        <button class="tab active" data-t="daily">Daily Set</button>
+        <button class="tab" data-t="news">News Briefing</button>
+        <button class="tab" data-t="bank">Practice Bank</button>
       </div>
 
-      <!-- Dictation -->
-      <div id="pane-dict">
-        <div class="row">
-          <h2 class="grow">Dictation</h2>
-          <button id="playDictation" class="btn">🔊 Play</button>
-          <button id="replayDictation" class="btn">↻ Replay</button>
-          <button id="nextDictation" class="btn">Next ⟶</button>
+      <!-- Daily Set -->
+      <div id="pane-daily">
+        <div class="row wrap">
+          <h2 class="grow">Today’s Listening (3 items)</h2>
+          <button id="dailyRefresh" class="btn">↻ New daily pick</button>
         </div>
-        <div class="row small"><span id="dictationHint" class="pill">Hint</span></div>
-        <textarea id="dictationInput" class="mono" rows="5" placeholder="Type what you hear…"></textarea>
-        <div class="row">
-          <button id="checkDictation" class="btn">Check</button>
-          <span id="dictationScore" class="pill">Score: 0%</span>
+        <div id="dailyWrap"></div>
+        <div class="row small">
+          <span id="dailyProgress" class="pill">Completed: 0/3</span>
+          <span id="dailyAvg" class="pill">Avg score: 0%</span>
         </div>
       </div>
 
       <!-- News -->
       <div id="pane-news" style="display:none">
-        <div class="row">
-          <h2 class="grow">News Bulletin (FR)</h2>
+        <div class="row wrap">
+          <h2 class="grow">News Briefing (FR)</h2>
           <select id="newsTopic" class="input" style="max-width:220px">
             <option value="france">France</option>
             <option value="world">Monde</option>
@@ -57,11 +55,33 @@
             <option value="sport">Sport</option>
             <option value="culture">Culture</option>
           </select>
-          <button id="playNews" class="btn">🔊 Play</button>
-          <button id="stopNews" class="btn bad">⏹ Stop</button>
+          <button id="newsPlayAll" class="btn">🔊 Play briefing</button>
+          <button id="newsStop" class="btn bad">⏹ Stop</button>
         </div>
-        <textarea id="newsBox" class="mono" rows="6" readonly></textarea>
-        <p class="muted small">Listening to a bulletin auto-awards XP once.</p>
+        <textarea id="newsTranscript" class="mono" rows="8" readonly></textarea>
+        <p class="muted small">Playing a full briefing marks your listening progress for today.</p>
+      </div>
+
+      <!-- Practice Bank -->
+      <div id="pane-bank" style="display:none">
+        <div class="row wrap">
+          <h2 class="grow">Dictation Practice Bank</h2>
+          <select id="bankLevel" class="input" style="max-width:220px">
+            <option value="all">All levels</option>
+            <option value="A2">A2</option>
+            <option value="B1">B1</option>
+            <option value="B2">B2</option>
+          </select>
+          <button id="bankNext" class="btn">Next ⟶</button>
+          <button id="bankPlay" class="btn">🔊 Play</button>
+          <button id="bankReplay" class="btn">↻ Replay</button>
+        </div>
+        <div class="row small"><span id="bankHint" class="pill">Hint</span></div>
+        <textarea id="bankInput" class="mono" rows="5" placeholder="Type what you hear…"></textarea>
+        <div class="row">
+          <button id="bankCheck" class="btn">Check</button>
+          <span id="bankScore" class="pill">Score: 0%</span>
+        </div>
       </div>
     </section>
   </main>
